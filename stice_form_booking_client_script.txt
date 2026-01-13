@@ -1,0 +1,61 @@
+api.controller = function($scope, spUtil, $filter) {
+    /* widget controller */
+    var c = this;
+
+    c.newBooking = $scope.widget_parameters.shared || {};
+
+    $scope.time_slots = [];
+    for (var i = 0; i < 24; i++) {
+        var hour = i.toString().padStart(2, '0');
+        $scope.time_slots.push(hour + ':00');
+        $scope.time_slots.push(hour + ':30');
+    }
+
+
+
+    $scope.confirm = function() {
+        if (!c.newBooking.booked_for || !c.newBooking.project.value || !c.newBooking.stice.value || !c.newBooking.start_date || !c.newBooking.end_date || !c.newBooking.start_time || !c.newBooking.end_time) {
+            spUtil.addInfoMessage("Fill all the mandatory fields");
+            return;
+        }
+
+        const format_start_date = $filter('date')(c.newBooking.start_date, 'yyyy-MM-dd');
+        const format_end_date = $filter('date')(c.newBooking.end_date, 'yyyy-MM-dd');
+        const start_date = format_start_date + " " + c.newBooking.start_time + ":00";
+        const end_date = format_end_date + " " + c.newBooking.end_time + ":00";			  
+        c.newBooking.start_date_time = start_date;
+        c.newBooking.end_date_time = end_date;
+			  
+
+        $scope.$parent.$parent.buttonClicked({
+            label: "Confirm",
+            primary: true
+        });
+
+    };
+
+    $scope.cancel = function() {
+        $scope.$parent.$parent.buttonClicked({
+            label: "Cancel",
+            cancel: true
+        });
+    };
+
+    $scope.projectChange = function() {
+        if (c.newBooking.project.value) {
+            c.data.stice_visible = false;
+            c.data.project = c.newBooking.project.value;
+            c.newBooking.stice = {
+                value: null,
+                displayValue: ''
+            };
+        } else {
+            c.data.stice_visible = true;
+            c.newBooking.stice = {
+                value: null,
+                displayValue: ''
+            };
+        }
+    };
+
+};

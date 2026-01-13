@@ -1,0 +1,8 @@
+(function() {
+    /* populate the 'data' object */
+    /* e.g., data.table = $sp.getValue('table'); */
+
+    data.stice_visible = true;
+    data.project = '';
+
+})();

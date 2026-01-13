@@ -1,0 +1,76 @@
+<div class="booking-calendar-widget">
+  <div class="calendar-header">
+    <h2>Stice Booking Slots</h2>
+    <button class="btn btn-primary" ng-click="openNewBookingModal()">
+      <i class="fa fa-calendar-check-o"></i> New Booking
+    </button>
+  </div>
+
+  <div class="calendar-controls">  
+    <div class="project-selector">
+      <label>Project</label>   
+      <sn-record-picker field="selectedProject"
+                        table="'x_stmin_stice_book_projects'"
+                        display-field="'name'"
+                        value-field="'sys_id'"
+                        search-fields="'name'"
+                        page-size="100"
+                        placeholder="Select Project"
+                        ng-change="loadStices(); loadBookings();">                       
+      </sn-record-picker>
+    </div>
+  
+    <div class="date-selector">
+      <label for="myDateInput">Select Date:</label>
+      <input type="date" 
+             id="myDateInput" 
+             class="form-control" 
+             ng-model="selectedDate" 
+             ng-change="loadBookings()" 
+             name="my_date_field">
+    </div>
+  </div>
+  
+  <div class="calendar-container" ng-if="selectedProject.value">
+    <div class="calendar-grid">
+      
+      <!-- HEADER ROW - Will be sticky -->
+      <div class="time-header">
+        <div class="stice-label sticky-corner">Stices</div>
+        <div class="time-slot" ng-repeat="hour in timeSlots">
+          {{hour}}
+        </div>
+      </div>
+      
+      <!-- STICE ROWS -->
+      <div class="stice-row" ng-repeat="stice in stices">
+        <div class="stice-name sticky-column">{{stice.name}}</div>
+        
+        <div class="time-slot-container" ng-repeat="hour in timeSlots" ng-class="{'booked-container': hasBookingInHour(stice.sys_id, hour)}">
+          
+          <div class="sub-slot"
+               ng-class="getSlotClass(stice.sys_id, hour, 0)"
+               ng-click="handleSlotClick(stice.sys_id, hour, 0)">
+            <div ng-if="getBookingForSlot(stice.sys_id, hour, 0) as booking" 
+                 ng-show="isBookingStart(booking, stice.sys_id, hour, 0)" 
+                 class="booking-info">
+              {{booking.booked_for}}
+            </div>
+          </div>
+ 
+          <div class="sub-slot"
+               ng-class="getSlotClass(stice.sys_id, hour, 30)"
+               ng-click="handleSlotClick(stice.sys_id, hour, 30)">
+            <div ng-if="getBookingForSlot(stice.sys_id, hour, 30) as booking" 
+                 ng-show="isBookingStart(booking, stice.sys_id, hour, 30)" 
+                 class="booking-info">
+              {{booking.booked_for}}
+            </div>
+          </div>
+ 
+        </div>
+      </div>
+        
+    </div>
+  </div>
+</div>

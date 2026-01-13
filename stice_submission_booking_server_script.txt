@@ -1,0 +1,261 @@
+(function() {
+    /* populate the 'data' object */
+    /* e.g., data.table = $sp.getValue('table'); */
+
+    if (!input || !input.action) {
+
+        var modalWidget = $sp.getWidget('stice_booking_form');
+        data.newBookingWidgetSysId = modalWidget ? modalWidget.sys_id : '';
+			
+        var formWidget = $sp.getWidget('widget-form');
+        data.formWidgetSysId = formWidget ? formWidget.sys_id : '';
+
+        data.projects = [];
+        var projectGr = new GlideRecord('x_stmin_stice_book_projects');
+        projectGr.addQuery("active", true);
+        projectGr.orderBy("name");
+        projectGr.query();
+        while (projectGr.next()) {
+            data.projects.push({
+                sys_id: projectGr.getUniqueValue(),
+                name: projectGr.getDisplayValue("name"),
+            });
+        }
+    }
+
+    if (input && input.action) {
+        switch (input.action) {
+            case "getStices":
+                data.stices = getSticesForProject(input.project_id);
+                break;
+            case "getBookings":
+                data.bookings = getBookingsForDate(input.project_id, input.date);
+                break;
+            case "createBooking":
+                var result = createBookingHandler(input.booking_data);
+                data.success = result.success;
+                data.error = result.error;
+                data.message = result.message;
+                data.bookings_created = result.bookings_created;
+                break;
+        }
+    }
+
+    function getSticesForProject(projectId) {
+        var stices = [];
+        if (!projectId) return stices;
+
+        var sticeGr = new GlideRecord("x_stmin_stice_book_stices");
+        sticeGr.addQuery("active", true);			  
+        sticeGr.addQuery("project", projectId);				  
+        sticeGr.orderBy("name");
+        sticeGr.query();
+        while (sticeGr.next()) {
+            stices.push({
+                sys_id: sticeGr.getUniqueValue(),
+                name: sticeGr.getDisplayValue("name"),
+                description: sticeGr.getDisplayValue("description")               
+            });
+        }
+        return stices;
+    }
+
+    function getBookingsForDate(projectId, date) {
+        var bookings = [];
+        if (!projectId || !date) return bookings;
+
+        var startOfDay = date + "00:00:00";
+
+        var bookingsGr = new GlideRecord("x_stmin_stice_book_bookings");
+        bookingsGr.addQuery("project", projectId);
+        bookingsGr.addQuery("start_date_time", ">=", startOfDay);
+        bookingsGr.query();
+
+        while (bookingsGr.next()) {
+            bookings.push({
+                sys_id: bookingsGr.getUniqueValue(),
+                booked_for: bookingsGr.getDisplayValue("booked_for"),
+                project: bookingsGr.getValue("project"),
+                project_name: bookingsGr.getDisplayValue("Project"),
+                stice: bookingsGr.getValue("stice"),
+                stice_name: bookingsGr.getDisplayValue("stice"),
+                start_date_time: bookingsGr.getDisplayValue("start_date_time"),
+                end_date_time: bookingsGr.getDisplayValue("end_date_time"),
+            });
+        }
+        return bookings;
+    }
+
+    function createBookingHandler(bookingDataJson) {
+        try {
+            var booking_data = bookingDataJson;
+            
+            // Check if recurrence is selected
+            if (booking_data.recurrence && booking_data.recurrence !== "") {
+                return createRecurringBookings(booking_data);
+            } else {
+                return createSingleBookingHandler(booking_data);
+            }
+        } catch (e) {
+            gs.error("Booking creation error: " + e.message);
+            return {
+                success: false,
+                error: "Error processing booking data: " + e.message,
+            };
+        }
+    }
+
+    function createSingleBookingHandler(booking_data) {
+        var conflict_check = checkBookingConflicts(booking_data);
+        if (!conflict_check.success) {
+            return conflict_check;
+        }
+
+        var booking_sysId = createSingleBooking(booking_data);
+        if (!booking_sysId) {
+            return {
+                success: false,
+                error: "Failed to create booking record",
+            };
+        }
+        return {
+            success: true,
+            sys_id: booking_sysId,
+            message: "Booking created successfully",
+            bookings_created: 1
+        };
+    }
+
+    function createRecurringBookings(booking_data) {
+        var bookings_created = 0;
+        var failed_bookings = [];
+        var created_sys_ids = [];
+        
+        // Parse the start date and recurrence end date
+        var start_date = new GlideDateTime(booking_data.start_date_time);
+			  var originalDay = start_date.getDayOfMonthLocalTime();
+        var recurrence_end_date = new GlideDateTime(booking_data.recurrence_end_date + '23:59:59');
+        
+	
+        
+        // Calculate the duration of the booking in milliseconds
+        var start_dt = new GlideDateTime(booking_data.start_date_time);
+        var end_dt = new GlideDateTime(booking_data.end_date_time);
+        var duration_ms = end_dt.getNumericValue() - start_dt.getNumericValue();
+        
+        var current_date = new GlideDateTime(booking_data.start_date_time);
+        var iteration = 0;
+        var max_iterations = 500; // Safety limit to prevent infinite loops
+
+        
+        while (
+  current_date.getNumericValue() <= recurrence_end_date.getNumericValue() &&
+  iteration < max_iterations
+) {
+            iteration++;
+            
+					var endGdt = new GlideDateTime();
+endGdt.setNumericValue(current_date.getNumericValue() + duration_ms);
+
+            // Create booking data for this occurrence
+            var occurrence_data = {
+                booked_for: booking_data.booked_for,
+                project: booking_data.project,
+                stice: booking_data.stice,
+                recurrence: booking_data.recurrence,
+							  recurrence_end_date: recurrence_end_date,
+                start_date_time: current_date.getValue(),
+                end_date_time: endGdt.getValue()
+            };
+            
+            // Check for conflicts
+            var conflict_check = checkBookingConflicts(occurrence_data);
+            if (conflict_check.success) {
+                var booking_sysId = createSingleBooking(occurrence_data);
+                if (booking_sysId) {
+                    bookings_created++;
+                    created_sys_ids.push(booking_sysId);
+                } else {
+                    failed_bookings.push(current_date.getDisplayValue());
+                }
+            } else {
+                failed_bookings.push(current_date.getDisplayValue() + " (conflict)");
+            }
+            
+            // Increment the date based on recurrence type
+            switch (booking_data.recurrence) {
+                case "daily":
+                    current_date.addDaysLocalTime(1);
+                    break;
+                case "weekly":
+                    current_date.addWeeksLocalTime(1);
+                    break;
+                case "monthly":
+    current_date.addMonthsLocalTime(1);
+
+    var daysInMonth = current_date.getDaysInMonthLocalTime();
+    var targetDay = Math.min(originalDay, daysInMonth);
+
+    current_date.setDayOfMonthLocalTime(targetDay);
+    break;
+
+               
+                default:
+                    // Invalid recurrence type, stop
+                    iteration = max_iterations;
+            }
+        }
+        
+        if (bookings_created === 0) {
+            return {
+                success: false,
+                error: "No bookings could be created. All time slots had conflicts or errors.",
+                bookings_created: 0
+            };
+        }
+        
+        var message = bookings_created + " booking(s) created successfully";
+        if (failed_bookings.length > 0) {
+            message += ". Failed/skipped dates: " + failed_bookings.join(", ");
+        }
+        
+        return {
+            success: true,
+            message: message,
+            bookings_created: bookings_created,
+            failed_bookings: failed_bookings,
+            sys_ids: created_sys_ids
+        };
+    }
+
+    function checkBookingConflicts(bookingData) {
+        var conflictGr = new GlideRecord("x_stmin_stice_book_bookings");
+        conflictGr.addQuery("stice", bookingData.stice.value || bookingData.stice);
+        conflictGr.addQuery("start_date_time", "<", bookingData.end_date_time);
+        conflictGr.addQuery("end_date_time", ">", bookingData.start_date_time);
+        conflictGr.query();
+        if (conflictGr.hasNext()) {
+            return {
+                success: false,
+                error: "Time slot conflicts with an existing booking for the same stice",
+            };
+        }
+        return {
+            success: true
+        };
+    }
+
+    function createSingleBooking(bookingData) {
+        var createGr = new GlideRecord("x_stmin_stice_book_bookings");
+        createGr.initialize();
+        createGr.setValue("booked_for", bookingData.booked_for.value || bookingData.booked_for);
+        createGr.setValue("project", bookingData.project.value || bookingData.project);
+        createGr.setValue("stice", bookingData.stice.value || bookingData.stice);
+        createGr.setValue("recurrence", bookingData.recurrence || "");
+			  createGr.setValue("recurrence_end_date", bookingData.recurrence_end_date);
+        createGr.start_date_time.setDisplayValue(bookingData.start_date_time);
+        createGr.end_date_time.setDisplayValue(bookingData.end_date_time);
+        return createGr.insert();
+    }
+
+})();

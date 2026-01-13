@@ -1,0 +1,203 @@
+api.controller = function($scope, spUtil, $filter, spModal, $uibModal, $timeout) {
+    /* widget controller */
+    var c = this;
+
+    const todayDateString = $filter('date')(new Date(), 'yyyy-MM-dd');
+
+    $scope.projects = c.data.projects || [];
+    $scope.stices = [];
+    $scope.bookings = [];
+    $scope.selectedProject = {
+        value: null,
+        displayValue: ''
+    };
+    $scope.selectedDate = new Date(todayDateString);
+    $scope.selectedBooking = null;
+	
+	  $scope.hasBookingInHour = function(sticeId, hour) {
+    return (
+        $scope.getBookingForSlot(sticeId, hour, 0) ||
+        $scope.getBookingForSlot(sticeId, hour, 30)
+    );
+};
+
+
+    $scope.resetNewBooking = function() {
+        c.newBooking = {
+					  "recurrence": "",
+					  "recurrence_end_date": "",
+            "booked_for": {
+                value: null,
+                displayValue: ''
+            },
+            "project": {
+                value: null,
+                displayValue: ''
+            },
+            "stice": {
+                value: null,
+                displayValue: ''
+            },
+            "start_date": "",
+            "end_date": "",
+            "start_time": "",
+            "end_time": "",
+            "start_date_time": "",
+            "end_date_time": ""
+        };
+    };
+
+    $scope.timeSlots = [];
+    for (var i = 0; i < 24; i++) {
+        var hour = i.toString().padStart(2, '0');
+        $scope.timeSlots.push(hour + ':00');
+    }
+
+    // NEW: Function to scroll to 8:00 AM
+   $scope.scrollToHour = function(hour) {
+    $timeout(function() {
+        var container = document.querySelector('.calendar-container');
+        if (!container) return;
+
+       
+        var timeSlots = container.querySelectorAll('.time-header .time-slot');
+        
+        if (timeSlots && timeSlots[hour]) {
+
+            var targetSlot = timeSlots[hour];
+            var slotPosition = targetSlot.offsetLeft;
+            
+           
+            container.scrollLeft = slotPosition - 200; // 200px is the sticky column width
+        } else {
+          
+            var scrollPosition = hour * 60;
+            container.scrollLeft = scrollPosition;
+        }
+    }, 150); 
+};
+    $scope.loadStices = function() {
+        if (!$scope.selectedProject.value) {
+            $scope.stices = [];
+            return;
+        }
+        c.server.get({
+            action: "getStices",
+            project_id: $scope.selectedProject.value
+        }).then(function(response) {
+            $scope.stices = response.data.stices || [];
+        }).catch(function(error) {
+            console.error("Error loading stices:" + error);
+            spUtil.addErrorMessage("Failed to load stices");
+        });
+    };
+
+    $scope.loadBookings = function() {
+        if (!$scope.selectedProject.value || !$scope.selectedDate) {
+            $scope.bookings = [];
+            return;
+        }
+        const dateToSend = $filter('date')($scope.selectedDate, 'yyyy-MM-dd');
+        c.server.get({
+            action: "getBookings",
+            project_id: $scope.selectedProject.value,
+            date: dateToSend
+        }).then(function(response) {
+            $scope.bookings = response.data.bookings || [];
+            
+            // NEW: Scroll to 8:00 AM after bookings load
+            $scope.scrollToHour(8);
+            
+        }).catch(function(error) {
+            console.error("Error loading bookings:" + error);
+            spUtil.addErrorMessage("Failed to load bookings");
+        });
+    };
+
+    $scope.getBookingForSlot = function(sticeId, hour, minute) {
+        const slotTime = hour.substring(0, 2) + ':' + minute.toString().padStart(2, '0');
+        const slotStart = new Date($scope.selectedDate.toDateString() + ' ' + slotTime);
+        return $scope.bookings.find(function(booking) {
+            if (booking.stice !== sticeId) return false;
+            const bookingStartTime = new Date(booking.start_date_time);
+            const bookingEndTime = new Date(booking.end_date_time);
+            const slotIsAfterStart = slotStart >= bookingStartTime;
+            const slotIsBeforeEnd = slotStart < bookingEndTime;
+            return slotIsAfterStart && slotIsBeforeEnd;
+        });
+    };
+
+    // UPDATED: Fixed function signature
+    $scope.isBookingStart = function(booking, sticeId, hour, minute) {
+        const hourNum = hour.substring(0, 2);
+        const slotTime = hourNum + ':' + minute.toString().padStart(2, '0');
+        const slotStart = new Date($scope.selectedDate.toDateString() + ' ' + slotTime);
+        const bookingStartTime = new Date(booking.start_date_time);
+        return slotStart.getTime() === bookingStartTime.getTime();
+    };
+
+    // UPDATED: Fixed function signature
+    $scope.isBookingEnd = function(booking, sticeId, hour, minute) {
+        const hourNum = hour.substring(0, 2);
+        const slotTime = hourNum + ':' + minute.toString().padStart(2, '0');
+        const slotStart = new Date($scope.selectedDate.toDateString() + ' ' + slotTime);
+        const slotEnd = new Date(slotStart.getTime() + (30 * 60 * 1000));
+        const bookingEndTime = new Date(booking.end_date_time);
+        return slotEnd.getTime() === bookingEndTime.getTime();
+    };
+
+    $scope.getSlotClass = function(sticeId, hour, minute) {
+        var booking = $scope.getBookingForSlot(sticeId, hour, minute);
+        return booking ? "booked" : "available";
+    };
+
+    $scope.handleSlotClick = function(sticeId, hour, minute) {
+        var activeBooking = $scope.getBookingForSlot(sticeId, hour, minute);
+
+        if (activeBooking) {
+            spModal.open({
+                title: 'Booking Details',
+                widget: c.data.formWidgetSysId,
+                table: "x_stmin_stice_book_bookings",
+                sys_id: activeBooking.sys_id, // FIXED: Use actual booking ID
+                scope: $scope,
+                size: 'md',
+            }).then(function(result) {
+                $scope.loadBookings(); // Refresh after modal closes
+            }, function() {});
+        } else {
+            return;
+        }
+    };
+
+    $scope.openNewBookingModal = function() {
+        $scope.resetNewBooking();
+
+        spModal.open({
+            title: 'Stice Booking Form',
+            widget: c.data.newBookingWidgetSysId,
+            scope: $scope,
+            size: 'md',
+            shared: c.newBooking,
+            buttons: ["", ""],
+        }).then(function(result) {
+            $scope.createBookingRecord(c.newBooking);
+        }, function() {
+            spUtil.addInfoMessage("Booking form closed!");
+        });
+    };
+
+    $scope.createBookingRecord = function(bookingData) {
+        c.server.get({
+            action: "createBooking",
+            booking_data: bookingData
+        }).then(function(response) {
+            if (response.data.success) {
+                spUtil.addInfoMessage("Booking created successfully!");
+                $scope.loadBookings();
+            } else {
+                spUtil.addErrorMessage("Booking creation failed!");
+            }
+        });
+    };
+};

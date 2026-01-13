@@ -1,0 +1,102 @@
+<div class="panel panel-default">
+    <div class="panel-body">
+        <!-- User Selection -->
+        <div class="form-group">
+            <label>Booked For *</label>   
+            <sn-record-picker 
+                field="c.newBooking.booked_for"
+                table="'sys_user'"
+                display-field="'name'"                                
+                value-field="'sys_id'"
+                search-fields="'name,user_name'"
+                page-size="100"
+                placeholder="Select User"
+                default-query="'u_user_type=st'">
+            </sn-record-picker>
+        </div>
+        
+        <!-- Project Selection -->
+        <div class="form-group">
+            <label>Project *</label>   
+            <sn-record-picker 
+                field="c.newBooking.project"
+                table="'x_stmin_stice_book_projects'"
+                display-field="'name'"
+                value-field="'sys_id'"
+                search-fields="'name'"
+                page-size="100"
+                placeholder="Select Project"
+                ng-change="projectChange()">                       
+            </sn-record-picker>
+        </div>
+        
+        <!-- Stice Selection -->
+        <div class="form-group">
+            <label>Stice *</label>
+            <sn-record-picker 
+                field="c.newBooking.stice"
+                table="'x_stmin_stice_book_stices'"
+                display-field="'name'"
+                display-fields="'description'"
+                value-field="'sys_id'"
+                search-fields="'name'"             
+                placeholder="Select a Stice"       
+                sn-disabled="c.data.stice_visible"
+                default-query="'project=' + c.data.project">
+            </sn-record-picker>
+        </div>
+        
+        <!-- Date Fields (Side by Side) -->
+        <div class="form-group">
+            <div class="row">
+                <div class="col-sm-6" style="padding-left: 0;">
+                    <label>Start Date *</label>
+                    <input type="date" ng-model="c.newBooking.start_date" class="form-control" required>
+                </div>
+                <div class="col-sm-6" style="padding-right: 0;">
+                    <label>End Date *</label>
+                    <input type="date" ng-model="c.newBooking.end_date" class="form-control" required>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Time Fields (Side by Side) -->
+        <div class="form-group">
+            <div class="row">
+                <div class="col-sm-6" style="padding-left: 0;">
+                    <label>Start Time *</label>
+                    <select ng-model="c.newBooking.start_time" class="form-control" required>
+                        <option value="">hh:mm</option>
+                        <option ng-repeat="time in time_slots" value="{{time}}">{{time}}</option>
+                    </select>
+                </div>
+                <div class="col-sm-6" style="padding-right: 0;">
+                    <label>End Time *</label>
+                    <select ng-model="c.newBooking.end_time" class="form-control" required>
+                        <option value="">hh:mm</option>
+                        <option ng-repeat="time in time_slots" value="{{time}}">{{time}}</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+     <div class="form-group">
+            <label>Recurrence</label>
+            <select ng-model="c.newBooking.recurrence" class="form-control">
+                <option value="">None</option>
+                <option value="daily">Daily</option>
+                <option value="weekly">Weekly</option>
+                <option value="monthly">Monthly</option>                
+            </select>
+        </div>
+      <div class="form-group" ng-if="c.newBooking.recurrence">
+            <label>Recurrence End Date *</label>
+            <input type="date" ng-model="c.newBooking.recurrence_end_date" class="form-control" required>
+        </div>
+    </div>
+    
+    <!-- Footer Buttons -->
+    <div class="modal-footer">
+        <button type="button" class="btn btn-light" ng-click="cancel()">Cancel</button>
+        <button type="button" class="btn btn-primary" ng-click="confirm()">Confirm Booking</button>
+    </div>
+</div>
