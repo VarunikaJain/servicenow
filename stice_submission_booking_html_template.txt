@@ -1,3 +1,24 @@
+<style>
+  /*
+   * Booked slots are rendered as multiple adjacent 30-min cells.
+   * The grid borders between those cells can appear as black "lines".
+   * Make booked-cell borders match the booked background so the block looks solid.
+   */
+  .booking-calendar-widget .calendar-grid .sub-slot.booked {
+    background-color: #d9d9d9 !important;
+    border-color: #d9d9d9 !important;
+    outline: none !important;
+    box-shadow: none !important;
+    background-image: none !important;
+  }
+
+  /* If the hour container itself has borders, hide them when that hour has any booking. */
+  .booking-calendar-widget .calendar-grid .time-slot-container.booked-container {
+    border-color: #d9d9d9 !important;
+    box-shadow: none !important;
+  }
+</style>
+
 <div class="booking-calendar-widget">
   <div class="calendar-header">
     <h2>Stice Booking Slots</h2>
