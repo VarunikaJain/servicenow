@@ -1,0 +1,22 @@
+.booking-calendar-widget .time-header .stice-label,
+.booking-calendar-widget .time-header .time-slot,
+.booking-calendar-widget .stice-row .stice-name,
+.booking-calendar-widget .stice-row .time-slot-container {
+  border-bottom: 1px solid #d6d6d6;
+  box-sizing: border-box;
+}
+
+.booking-calendar-widget .time-header .time-slot,
+.booking-calendar-widget .stice-row .time-slot-container {
+  border-right: 1px solid #d6d6d6;
+  box-sizing: border-box;
+}
+
+.booking-calendar-widget .time-slot-container .sub-slot {
+  box-sizing: border-box;
+}
+
+.booking-calendar-widget .time-slot-container .sub-slot + .sub-slot {
+  border-left: 1px solid #d6d6d6;
+  box-sizing: border-box;
+}
