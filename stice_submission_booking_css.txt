@@ -7,10 +7,10 @@
 .booking-calendar-widget .time-header .time-slot,
 .booking-calendar-widget .stice-row .stice-name,
 .booking-calendar-widget .stice-row .time-slot-container {
-  border-right: var(--grid-line-width) solid var(--grid-line-color);
-  border-bottom: var(--grid-line-width) solid var(--grid-line-color);
+  border-right: var(--grid-line-width) solid var(--grid-line-color) !important;
+  border-bottom: var(--grid-line-width) solid var(--grid-line-color) !important;
 }
 
 .booking-calendar-widget .time-slot-container .sub-slot + .sub-slot {
-  border-top: var(--grid-line-width) solid var(--grid-line-color);
+  border-top: var(--grid-line-width) solid var(--grid-line-color) !important;
 }
