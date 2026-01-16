@@ -1,22 +1,35 @@
+.booking-calendar-widget {
+  --grid-line-color: #d6d6d6;
+  --grid-line-width: 1px;
+}
+
+.booking-calendar-widget .calendar-grid,
+.booking-calendar-widget .time-header,
+.booking-calendar-widget .time-slot-container {
+  background-image: none;
+}
+
 .booking-calendar-widget .time-header .stice-label,
 .booking-calendar-widget .time-header .time-slot,
 .booking-calendar-widget .stice-row .stice-name,
-.booking-calendar-widget .stice-row .time-slot-container {
-  border-bottom: 1px solid #d6d6d6;
+.booking-calendar-widget .stice-row .time-slot-container,
+.booking-calendar-widget .time-slot-container .sub-slot {
+  border: 0;
   box-sizing: border-box;
+}
+
+.booking-calendar-widget .time-header .stice-label,
+.booking-calendar-widget .stice-row .stice-name {
+  border-right: var(--grid-line-width) solid var(--grid-line-color);
+  border-bottom: var(--grid-line-width) solid var(--grid-line-color);
 }
 
 .booking-calendar-widget .time-header .time-slot,
 .booking-calendar-widget .stice-row .time-slot-container {
-  border-right: 1px solid #d6d6d6;
-  box-sizing: border-box;
-}
-
-.booking-calendar-widget .time-slot-container .sub-slot {
-  box-sizing: border-box;
+  border-right: var(--grid-line-width) solid var(--grid-line-color);
+  border-bottom: var(--grid-line-width) solid var(--grid-line-color);
 }
 
 .booking-calendar-widget .time-slot-container .sub-slot + .sub-slot {
-  border-left: 1px solid #d6d6d6;
-  box-sizing: border-box;
+  border-top: var(--grid-line-width) solid var(--grid-line-color);
 }
