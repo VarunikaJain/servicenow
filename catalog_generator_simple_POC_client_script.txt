@@ -1,0 +1,60 @@
+api.controller = function($scope, spUtil) {
+    /*
+     * Simple Now Assist POC - Client Controller
+     */
+    var c = this;
+
+    c.userRequest = '';
+    c.isLoading = false;
+    c.result = null;
+
+    // Sample prompts
+    c.samples = [
+        'Create a catalog item with 5 variables and 2 mandatory',
+        'Create laptop request form with employee, model dropdown, and justification',
+        'Build a software access request with user, application, and approval date'
+    ];
+
+    // Main action - create catalog item
+    c.create = function() {
+        if (!c.userRequest) {
+            spUtil.addErrorMessage('Please enter a request');
+            return;
+        }
+
+        c.isLoading = true;
+        c.result = null;
+
+        c.server.get({
+            action: 'create',
+            userRequest: c.userRequest
+        }).then(function(response) {
+            c.isLoading = false;
+            c.result = response.data;
+            
+            if (response.data.success) {
+                spUtil.addInfoMessage('Catalog item created successfully!');
+            } else {
+                spUtil.addErrorMessage(response.data.message);
+            }
+        });
+    };
+
+    // Use sample prompt
+    c.useSample = function(sample) {
+        c.userRequest = sample;
+    };
+
+    // Open created item
+    c.openItem = function() {
+        if (c.result && c.result.catalogItem) {
+            window.open(c.result.catalogItem.url, '_blank');
+        }
+    };
+
+    // Clear form
+    c.clear = function() {
+        c.userRequest = '';
+        c.result = null;
+    };
+};

@@ -1,0 +1,137 @@
+(function() {
+    /*
+     * Simple Now Assist Integration POC
+     * Minimal code - just calls Now Assist API directly
+     */
+
+    data.message = '';
+    data.success = false;
+    data.catalogItem = null;
+
+    if (input && input.action === 'create') {
+        var result = createCatalogWithNowAssist(input.userRequest);
+        data.success = result.success;
+        data.message = result.message;
+        data.catalogItem = result.catalogItem;
+        data.aiResponse = result.aiResponse;
+    }
+
+    /**
+     * Main function - calls Now Assist and creates catalog item
+     */
+    function createCatalogWithNowAssist(userRequest) {
+        var result = { success: false, message: '', catalogItem: null, aiResponse: null };
+
+        try {
+            // Step 1: Call Now Assist API
+            var aiResponse = callNowAssist(userRequest);
+            result.aiResponse = aiResponse;
+
+            if (!aiResponse || !aiResponse.config) {
+                result.message = 'Could not process request. Please try again.';
+                return result;
+            }
+
+            // Step 2: Create catalog item from AI response
+            var config = aiResponse.config;
+            var itemSysId = createCatalogItem(config);
+
+            if (itemSysId) {
+                result.success = true;
+                result.message = 'Created: ' + config.name;
+                result.catalogItem = {
+                    sys_id: itemSysId,
+                    name: config.name,
+                    url: '/sc_cat_item.do?sys_id=' + itemSysId
+                };
+            }
+
+        } catch (e) {
+            result.message = 'Error: ' + e.message;
+        }
+
+        return result;
+    }
+
+    /**
+     * Call Now Assist Generative AI
+     */
+    function callNowAssist(userRequest) {
+        // System prompt telling AI what to return
+        var systemPrompt = 'You are a ServiceNow assistant. Parse the user request and return JSON with: {"config": {"name": "item name", "description": "desc", "variables": [{"name": "var1", "label": "Label", "type": "string|choice|reference|date", "mandatory": true/false}]}}';
+
+        try {
+            // Method 1: Using sn_gen_ai (Vancouver+)
+            var genAI = new sn_gen_ai.GenerativeAIService();
+            var response = genAI.generateText(JSON.stringify({
+                messages: [
+                    { role: 'system', content: systemPrompt },
+                    { role: 'user', content: userRequest }
+                ]
+            }));
+
+            if (response && response.choices) {
+                var content = response.choices[0].message.content;
+                // Clean and parse JSON
+                content = content.replace(/```json\n?/g, '').replace(/```/g, '');
+                return JSON.parse(content);
+            }
+        } catch (e) {
+            gs.info('Now Assist call: ' + e.message);
+        }
+
+        // Method 2: REST API fallback
+        try {
+            var rest = new sn_ws.RESTMessageV2();
+            rest.setEndpoint(gs.getProperty('glide.servlet.uri') + 'api/sn_gen_ai/now_assist/generate');
+            rest.setHttpMethod('POST');
+            rest.setRequestBody(JSON.stringify({
+                prompt: userRequest,
+                system_prompt: systemPrompt
+            }));
+            
+            var resp = rest.execute();
+            if (resp.getStatusCode() == 200) {
+                return JSON.parse(resp.getBody()).result;
+            }
+        } catch (e2) {
+            gs.info('REST fallback: ' + e2.message);
+        }
+
+        return null;
+    }
+
+    /**
+     * Create the catalog item record
+     */
+    function createCatalogItem(config) {
+        // Create catalog item
+        var item = new GlideRecord('sc_cat_item');
+        item.initialize();
+        item.name = config.name || 'New Catalog Item';
+        item.short_description = config.description || config.name;
+        item.active = true;
+        var itemId = item.insert();
+
+        // Create variables
+        if (config.variables && itemId) {
+            var typeMap = { 'string': 6, 'choice': 5, 'reference': 8, 'date': 9, 'text': 6, 'textarea': 2 };
+            
+            for (var i = 0; i < config.variables.length; i++) {
+                var v = config.variables[i];
+                var variable = new GlideRecord('item_option_new');
+                variable.initialize();
+                variable.name = v.name || 'var_' + i;
+                variable.question_text = v.label || v.name;
+                variable.cat_item = itemId;
+                variable.type = typeMap[v.type] || 6;
+                variable.mandatory = v.mandatory || false;
+                variable.order = (i + 1) * 100;
+                variable.insert();
+            }
+        }
+
+        return itemId;
+    }
+
+})();

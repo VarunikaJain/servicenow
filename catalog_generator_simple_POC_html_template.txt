@@ -1,0 +1,56 @@
+<div class="simple-catalog-generator">
+    <!-- Header -->
+    <div class="header">
+        <h2><i class="fa fa-magic"></i> Catalog Item Generator</h2>
+        <span class="badge">Now Assist Powered</span>
+    </div>
+
+    <!-- Input Section -->
+    <div class="input-section">
+        <label>Describe the catalog item you want to create:</label>
+        <textarea 
+            class="form-control" 
+            ng-model="c.userRequest" 
+            placeholder="Example: Create a catalog item with 5 variables and 2 mandatory"
+            rows="3"
+            ng-disabled="c.isLoading">
+        </textarea>
+
+        <div class="buttons">
+            <button class="btn btn-primary" ng-click="c.create()" ng-disabled="c.isLoading || !c.userRequest">
+                <i class="fa" ng-class="c.isLoading ? 'fa-spinner fa-spin' : 'fa-rocket'"></i>
+                {{c.isLoading ? 'Creating...' : 'Create with Now Assist'}}
+            </button>
+            <button class="btn btn-light" ng-click="c.clear()" ng-disabled="c.isLoading">
+                <i class="fa fa-refresh"></i> Clear
+            </button>
+        </div>
+    </div>
+
+    <!-- Sample Prompts -->
+    <div class="samples">
+        <p><strong>Try these:</strong></p>
+        <div class="sample" ng-repeat="sample in c.samples" ng-click="c.useSample(sample)">
+            <i class="fa fa-quote-left"></i> {{sample}}
+        </div>
+    </div>
+
+    <!-- Result Section -->
+    <div class="result" ng-if="c.result">
+        <!-- Success -->
+        <div class="success-box" ng-if="c.result.success">
+            <i class="fa fa-check-circle fa-2x"></i>
+            <h4>Catalog Item Created!</h4>
+            <p><strong>{{c.result.catalogItem.name}}</strong></p>
+            <button class="btn btn-info" ng-click="c.openItem()">
+                <i class="fa fa-external-link"></i> Open Catalog Item
+            </button>
+        </div>
+
+        <!-- Error -->
+        <div class="error-box" ng-if="!c.result.success">
+            <i class="fa fa-exclamation-circle"></i>
+            <p>{{c.result.message}}</p>
+        </div>
+    </div>
+</div>
