@@ -1,0 +1,568 @@
+(function() {
+    /* 
+     * Catalog Item Generator - Now Assist Version
+     * Server Script using ServiceNow Generative AI
+     */
+
+    // Initialize data object
+    data.message = '';
+    data.success = false;
+    data.createdItem = null;
+    data.createdVariables = [];
+    data.aiSuggestions = null;
+    data.conversationHistory = [];
+
+    // Handle client requests
+    if (input) {
+        switch (input.action) {
+            case 'generate':
+                var result = generateWithNowAssist(input.naturalLanguageInput, input.conversationId);
+                data.success = result.success;
+                data.message = result.message;
+                data.createdItem = result.createdItem;
+                data.createdVariables = result.createdVariables;
+                data.parsedConfig = result.parsedConfig;
+                break;
+
+            case 'preview':
+                var previewResult = previewWithNowAssist(input.naturalLanguageInput);
+                data.success = previewResult.success;
+                data.parsedConfig = previewResult.parsedConfig;
+                data.aiSuggestions = previewResult.suggestions;
+                break;
+
+            case 'chat':
+                var chatResult = chatWithNowAssist(input.message, input.conversationHistory);
+                data.success = chatResult.success;
+                data.aiResponse = chatResult.response;
+                data.parsedConfig = chatResult.parsedConfig;
+                break;
+
+            case 'refine':
+                var refineResult = refineConfiguration(input.refinement, input.currentConfig);
+                data.success = refineResult.success;
+                data.parsedConfig = refineResult.parsedConfig;
+                break;
+        }
+    }
+
+    /**
+     * Generate catalog item using Now Assist
+     * @param {string} userInput - Natural language input
+     * @param {string} conversationId - Optional conversation ID for context
+     */
+    function generateWithNowAssist(userInput, conversationId) {
+        var result = {
+            success: false,
+            message: '',
+            createdItem: null,
+            createdVariables: [],
+            parsedConfig: null
+        };
+
+        try {
+            // Step 1: Call Now Assist to parse the input
+            var aiConfig = callNowAssistAPI(userInput, 'parse_catalog_request');
+
+            if (!aiConfig || !aiConfig.isValid) {
+                result.message = 'Now Assist could not understand the request. Please try rephrasing.';
+                return result;
+            }
+
+            result.parsedConfig = aiConfig;
+
+            // Step 2: Create the catalog item
+            var itemSysId = createCatalogItemRecord(aiConfig);
+
+            if (!itemSysId) {
+                result.message = 'Failed to create catalog item record';
+                return result;
+            }
+
+            result.createdItem = {
+                sys_id: itemSysId,
+                name: aiConfig.itemName,
+                category: aiConfig.category,
+                description: aiConfig.description
+            };
+
+            // Step 3: Create variables based on AI configuration
+            var variables = createVariablesFromAIConfig(itemSysId, aiConfig);
+            result.createdVariables = variables;
+
+            // Step 4: Success
+            result.success = true;
+            result.message = 'Successfully created "' + aiConfig.itemName + '" with ' + 
+                variables.length + ' variables using Now Assist';
+
+        } catch (e) {
+            result.message = 'Error: ' + e.message;
+            gs.error('Now Assist Catalog Generator Error: ' + e.message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Preview configuration using Now Assist
+     * @param {string} userInput - Natural language input
+     */
+    function previewWithNowAssist(userInput) {
+        var result = {
+            success: false,
+            parsedConfig: null,
+            suggestions: null
+        };
+
+        try {
+            var aiResponse = callNowAssistAPI(userInput, 'preview_catalog_request');
+            
+            if (aiResponse) {
+                result.success = true;
+                result.parsedConfig = aiResponse.config;
+                result.suggestions = aiResponse.suggestions;
+            }
+        } catch (e) {
+            gs.error('Now Assist Preview Error: ' + e.message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Chat with Now Assist for iterative refinement
+     * @param {string} message - User message
+     * @param {array} history - Conversation history
+     */
+    function chatWithNowAssist(message, history) {
+        var result = {
+            success: false,
+            response: '',
+            parsedConfig: null
+        };
+
+        try {
+            var aiResponse = callNowAssistChat(message, history);
+            
+            if (aiResponse) {
+                result.success = true;
+                result.response = aiResponse.message;
+                result.parsedConfig = aiResponse.currentConfig;
+            }
+        } catch (e) {
+            gs.error('Now Assist Chat Error: ' + e.message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Call Now Assist Generative AI API
+     * @param {string} userInput - User's natural language input
+     * @param {string} action - The action type (parse, preview, etc.)
+     */
+    function callNowAssistAPI(userInput, action) {
+        // Construct the prompt for Now Assist
+        var systemPrompt = buildSystemPrompt(action);
+        var userPrompt = userInput;
+
+        try {
+            // Method 1: Using GlideScopedEvaluator for Now Assist (if available)
+            var nowAssistAvailable = gs.getProperty('sn_gen_ai.enabled', 'false') === 'true';
+            
+            if (nowAssistAvailable) {
+                return callNowAssistNative(systemPrompt, userPrompt);
+            } else {
+                // Fallback: Use REST API to call Now Assist
+                return callNowAssistREST(systemPrompt, userPrompt);
+            }
+        } catch (e) {
+            gs.error('Now Assist API Error: ' + e.message);
+            // Fallback to enhanced regex parsing if AI fails
+            return fallbackParsing(userInput);
+        }
+    }
+
+    /**
+     * Native Now Assist call using Script Include
+     */
+    function callNowAssistNative(systemPrompt, userPrompt) {
+        // Use sn_gen_ai Script Include (available in Vancouver+)
+        var genAI = new sn_gen_ai.GenerativeAIService();
+        
+        var requestPayload = {
+            "messages": [
+                {
+                    "role": "system",
+                    "content": systemPrompt
+                },
+                {
+                    "role": "user", 
+                    "content": userPrompt
+                }
+            ],
+            "temperature": 0.3,
+            "max_tokens": 2000
+        };
+
+        var response = genAI.generateText(JSON.stringify(requestPayload));
+        
+        if (response && response.choices && response.choices.length > 0) {
+            var aiOutput = response.choices[0].message.content;
+            return parseAIResponse(aiOutput);
+        }
+
+        return null;
+    }
+
+    /**
+     * REST API call to Now Assist
+     */
+    function callNowAssistREST(systemPrompt, userPrompt) {
+        var request = new sn_ws.RESTMessageV2();
+        var instanceUrl = gs.getProperty('glide.servlet.uri');
+        
+        request.setEndpoint(instanceUrl + 'api/sn_gen_ai/now_assist/generate');
+        request.setHttpMethod('POST');
+        request.setRequestHeader('Content-Type', 'application/json');
+        request.setRequestHeader('Accept', 'application/json');
+        
+        var payload = {
+            "prompt": userPrompt,
+            "system_prompt": systemPrompt,
+            "skill_id": getCatalogSkillId(),
+            "parameters": {
+                "temperature": 0.3,
+                "max_tokens": 2000
+            }
+        };
+        
+        request.setRequestBody(JSON.stringify(payload));
+        
+        var response = request.execute();
+        var httpStatus = response.getStatusCode();
+        
+        if (httpStatus == 200) {
+            var responseBody = JSON.parse(response.getBody());
+            return parseAIResponse(responseBody.result);
+        }
+        
+        gs.warn('Now Assist REST call failed with status: ' + httpStatus);
+        return null;
+    }
+
+    /**
+     * Build system prompt for Now Assist
+     */
+    function buildSystemPrompt(action) {
+        var basePrompt = `You are a ServiceNow catalog item configuration assistant. 
+Your task is to parse natural language requests and generate structured JSON configurations for catalog items.
+
+When parsing a request, extract the following:
+1. itemName: A descriptive name for the catalog item
+2. description: A brief description of the item's purpose
+3. category: Suggested category (e.g., Hardware, Software, HR Services)
+4. variables: An array of variable configurations, each containing:
+   - name: Technical name (snake_case)
+   - label: Display label
+   - type: One of: text, textarea, dropdown, checkbox, date, datetime, reference, integer, email, phone
+   - mandatory: boolean
+   - order: display order (100, 200, 300...)
+   - options: For dropdowns, an array of {value, label} pairs
+   - referenceTable: For reference fields, the target table name
+   - helpText: Optional help text for the field
+
+Respond ONLY with valid JSON in this exact format:
+{
+  "isValid": true,
+  "itemName": "string",
+  "description": "string", 
+  "category": "string",
+  "variables": [
+    {
+      "name": "string",
+      "label": "string",
+      "type": "string",
+      "mandatory": boolean,
+      "order": number,
+      "options": [],
+      "referenceTable": "string",
+      "helpText": "string"
+    }
+  ],
+  "suggestions": ["string"]
+}`;
+
+        if (action === 'preview_catalog_request') {
+            basePrompt += '\n\nAlso include helpful suggestions for improving the catalog item design.';
+        }
+
+        return basePrompt;
+    }
+
+    /**
+     * Parse AI response into configuration object
+     */
+    function parseAIResponse(aiOutput) {
+        try {
+            // Clean up the response if needed
+            var jsonStr = aiOutput;
+            
+            // Remove markdown code blocks if present
+            if (jsonStr.indexOf('```json') > -1) {
+                jsonStr = jsonStr.replace(/```json\n?/g, '').replace(/```\n?/g, '');
+            }
+            if (jsonStr.indexOf('```') > -1) {
+                jsonStr = jsonStr.replace(/```\n?/g, '');
+            }
+            
+            // Parse the JSON
+            var config = JSON.parse(jsonStr.trim());
+            
+            // Validate required fields
+            if (!config.itemName || !config.variables || config.variables.length === 0) {
+                config.isValid = false;
+            }
+            
+            return config;
+        } catch (e) {
+            gs.error('Failed to parse AI response: ' + e.message);
+            return { isValid: false };
+        }
+    }
+
+    /**
+     * Fallback parsing if Now Assist is unavailable
+     */
+    function fallbackParsing(userInput) {
+        gs.info('Using fallback parsing - Now Assist unavailable');
+        
+        // Use the original regex-based parsing as fallback
+        var config = {
+            isValid: false,
+            itemName: 'Generated Catalog Item',
+            description: 'Auto-generated catalog item',
+            category: '',
+            variables: []
+        };
+
+        var lowerInput = userInput.toLowerCase();
+
+        // Extract variable count
+        var varMatch = lowerInput.match(/(\d+)\s*(?:variables?|fields?)/i);
+        var totalVars = varMatch ? parseInt(varMatch[1], 10) : 3;
+
+        // Extract mandatory count
+        var mandMatch = lowerInput.match(/(\d+)\s*(?:mandatory|required)/i);
+        var mandatoryCount = mandMatch ? parseInt(mandMatch[1], 10) : 0;
+
+        // Extract name
+        var nameMatch = userInput.match(/(?:named?|called)\s+["']([^"']+)["']/i);
+        if (nameMatch) {
+            config.itemName = nameMatch[1];
+        }
+
+        // Generate variables
+        for (var i = 0; i < totalVars; i++) {
+            config.variables.push({
+                name: 'variable_' + (i + 1),
+                label: 'Variable ' + (i + 1),
+                type: 'text',
+                mandatory: i < mandatoryCount,
+                order: (i + 1) * 100
+            });
+        }
+
+        config.isValid = config.variables.length > 0;
+        return config;
+    }
+
+    /**
+     * Create catalog item from AI configuration
+     */
+    function createCatalogItemRecord(config) {
+        var catItem = new GlideRecord('sc_cat_item');
+        catItem.initialize();
+
+        catItem.name = config.itemName;
+        catItem.short_description = config.description || config.itemName;
+        catItem.description = 'Generated by Now Assist AI. ' + (config.description || '');
+        catItem.active = true;
+
+        // Set category if specified
+        if (config.category) {
+            var categoryGr = new GlideRecord('sc_category');
+            categoryGr.addQuery('title', 'CONTAINS', config.category);
+            categoryGr.setLimit(1);
+            categoryGr.query();
+            if (categoryGr.next()) {
+                catItem.category = categoryGr.sys_id;
+            }
+        }
+
+        return catItem.insert();
+    }
+
+    /**
+     * Create variables from AI configuration
+     */
+    function createVariablesFromAIConfig(itemSysId, config) {
+        var createdVariables = [];
+        
+        // Variable type mapping
+        var typeMapping = {
+            'text': 6,
+            'textarea': 2,
+            'dropdown': 5,
+            'select': 5,
+            'checkbox': 7,
+            'date': 9,
+            'datetime': 10,
+            'reference': 8,
+            'integer': 4,
+            'email': 6,
+            'phone': 6,
+            'yesno': 1
+        };
+
+        var variables = config.variables || [];
+
+        for (var i = 0; i < variables.length; i++) {
+            var varConfig = variables[i];
+            
+            var variable = new GlideRecord('item_option_new');
+            variable.initialize();
+
+            variable.name = varConfig.name || ('variable_' + (i + 1));
+            variable.cat_item = itemSysId;
+            variable.question_text = varConfig.label || varConfig.name;
+            variable.type = typeMapping[varConfig.type] || 6;
+            variable.mandatory = varConfig.mandatory || false;
+            variable.order = varConfig.order || ((i + 1) * 100);
+            variable.active = true;
+            
+            if (varConfig.helpText) {
+                variable.help_text = varConfig.helpText;
+            }
+
+            // Handle reference fields
+            if (varConfig.type === 'reference' && varConfig.referenceTable) {
+                variable.reference = varConfig.referenceTable;
+            }
+
+            var varSysId = variable.insert();
+
+            // Create dropdown options if applicable
+            if ((varConfig.type === 'dropdown' || varConfig.type === 'select') && varConfig.options) {
+                createDropdownOptions(varSysId, varConfig.options);
+            }
+
+            createdVariables.push({
+                sys_id: varSysId,
+                name: varConfig.name,
+                label: varConfig.label,
+                type: varConfig.type,
+                mandatory: varConfig.mandatory,
+                order: varConfig.order
+            });
+        }
+
+        return createdVariables;
+    }
+
+    /**
+     * Create dropdown options
+     */
+    function createDropdownOptions(variableSysId, options) {
+        for (var i = 0; i < options.length; i++) {
+            var opt = options[i];
+            var choice = new GlideRecord('question_choice');
+            choice.initialize();
+            choice.question = variableSysId;
+            choice.text = opt.label || opt.value;
+            choice.value = opt.value;
+            choice.order = (i + 1) * 100;
+            choice.insert();
+        }
+    }
+
+    /**
+     * Get the catalog generator skill ID
+     */
+    function getCatalogSkillId() {
+        var skillGr = new GlideRecord('sys_cs_skill');
+        skillGr.addQuery('name', 'Catalog Item Generator');
+        skillGr.setLimit(1);
+        skillGr.query();
+        
+        if (skillGr.next()) {
+            return skillGr.sys_id.toString();
+        }
+        
+        return null;
+    }
+
+    /**
+     * Chat conversation with Now Assist
+     */
+    function callNowAssistChat(message, history) {
+        var messages = [];
+        
+        // Add system message
+        messages.push({
+            role: 'system',
+            content: buildSystemPrompt('chat')
+        });
+        
+        // Add conversation history
+        if (history && history.length > 0) {
+            for (var i = 0; i < history.length; i++) {
+                messages.push(history[i]);
+            }
+        }
+        
+        // Add current message
+        messages.push({
+            role: 'user',
+            content: message
+        });
+
+        try {
+            var genAI = new sn_gen_ai.GenerativeAIService();
+            var response = genAI.chat(JSON.stringify({ messages: messages }));
+            
+            if (response) {
+                return {
+                    message: response.content,
+                    currentConfig: response.catalogConfig || null
+                };
+            }
+        } catch (e) {
+            gs.error('Chat error: ' + e.message);
+        }
+        
+        return null;
+    }
+
+    // Expose categories for UI
+    data.categories = getCategories();
+
+    function getCategories() {
+        var categories = [];
+        var catGr = new GlideRecord('sc_category');
+        catGr.addActiveQuery();
+        catGr.orderBy('title');
+        catGr.setLimit(50);
+        catGr.query();
+
+        while (catGr.next()) {
+            categories.push({
+                sys_id: catGr.sys_id.toString(),
+                title: catGr.title.toString()
+            });
+        }
+
+        return categories;
+    }
+
+})();

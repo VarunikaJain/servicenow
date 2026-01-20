@@ -1,0 +1,333 @@
+<div class="catalog-generator-widget now-assist-version">
+    <!-- Header Section -->
+    <div class="generator-header">
+        <div class="header-badge">
+            <span class="badge badge-ai">Now Assist Powered</span>
+        </div>
+        <h2><i class="fa fa-magic"></i> AI Catalog Item Generator</h2>
+        <p class="subtitle">Describe your catalog item in plain language - Now Assist will build it for you</p>
+    </div>
+
+    <!-- Main Input Section (when not in chat mode) -->
+    <div class="generator-body" ng-if="!c.showChat">
+        <div class="input-section">
+            <label for="nlInput" class="input-label">
+                <i class="fa fa-comment-o"></i> Describe your catalog item
+            </label>
+            <textarea 
+                id="nlInput"
+                class="form-control nl-input" 
+                ng-model="c.naturalLanguageInput" 
+                placeholder="Example: Create a laptop request form with employee name, laptop model dropdown with options MacBook Pro and Dell XPS, business justification text area, and delivery date - make employee and justification mandatory"
+                rows="5"
+                ng-disabled="c.isLoading">
+            </textarea>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button 
+                    class="btn btn-info" 
+                    ng-click="c.previewWithAI()" 
+                    ng-disabled="c.isLoading || !c.naturalLanguageInput">
+                    <i class="fa fa-eye"></i> Preview with AI
+                </button>
+                <button 
+                    class="btn btn-primary" 
+                    ng-click="c.generateWithAI()" 
+                    ng-disabled="c.isLoading || !c.naturalLanguageInput">
+                    <i class="fa fa-rocket"></i> Generate with Now Assist
+                </button>
+                <button 
+                    class="btn btn-secondary" 
+                    ng-click="c.startChat()" 
+                    ng-disabled="c.isLoading">
+                    <i class="fa fa-comments"></i> Chat Mode
+                </button>
+                <button 
+                    class="btn btn-light" 
+                    ng-click="c.clearForm()" 
+                    ng-disabled="c.isLoading">
+                    <i class="fa fa-refresh"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-section" ng-if="c.isLoading">
+            <div class="ai-loading">
+                <div class="spinner-container">
+                    <i class="fa fa-circle-o-notch fa-spin fa-3x"></i>
+                </div>
+                <p class="loading-text">Now Assist is analyzing your request...</p>
+                <div class="loading-dots">
+                    <span></span><span></span><span></span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-section" ng-if="c.error">
+            <div class="alert alert-danger">
+                <i class="fa fa-exclamation-triangle"></i> {{c.error}}
+            </div>
+        </div>
+
+        <!-- AI Preview Section -->
+        <div class="preview-section ai-preview" ng-if="c.showPreview && c.parsedConfig">
+            <div class="preview-header">
+                <h4><i class="fa fa-magic"></i> AI-Generated Configuration</h4>
+                <span class="ai-badge">Analyzed by Now Assist</span>
+            </div>
+            
+            <div class="preview-card">
+                <!-- Item Details -->
+                <div class="preview-item-details">
+                    <div class="preview-row">
+                        <span class="preview-label">Catalog Item Name:</span>
+                        <input type="text" class="form-control preview-edit" ng-model="c.parsedConfig.itemName">
+                    </div>
+                    <div class="preview-row">
+                        <span class="preview-label">Description:</span>
+                        <input type="text" class="form-control preview-edit" ng-model="c.parsedConfig.description">
+                    </div>
+                    <div class="preview-row" ng-if="c.parsedConfig.category">
+                        <span class="preview-label">Category:</span>
+                        <span class="preview-value">{{c.parsedConfig.category}}</span>
+                    </div>
+                </div>
+
+                <!-- Variables Table -->
+                <div class="variables-preview">
+                    <div class="variables-header">
+                        <h5><i class="fa fa-th-list"></i> Variables ({{c.parsedConfig.variables.length}})</h5>
+                        <button class="btn btn-sm btn-outline-primary" ng-click="c.addVariable()">
+                            <i class="fa fa-plus"></i> Add Variable
+                        </button>
+                    </div>
+                    
+                    <table class="table table-hover variables-table">
+                        <thead>
+                            <tr>
+                                <th>Order</th>
+                                <th>Label</th>
+                                <th>Type</th>
+                                <th>Mandatory</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr ng-repeat="variable in c.parsedConfig.variables track by $index" 
+                                ng-class="{'editing': c.editingIndex === $index}">
+                                <td>{{variable.order}}</td>
+                                <td>
+                                    <span ng-if="c.editingIndex !== $index">{{variable.label}}</span>
+                                    <input type="text" class="form-control form-control-sm" 
+                                           ng-if="c.editingIndex === $index" 
+                                           ng-model="variable.label">
+                                </td>
+                                <td>
+                                    <span ng-if="c.editingIndex !== $index">
+                                        <i class="fa" ng-class="c.getVariableTypeIcon(variable.type)"></i>
+                                        {{c.getVariableTypeName(variable.type)}}
+                                    </span>
+                                    <select class="form-control form-control-sm" 
+                                            ng-if="c.editingIndex === $index"
+                                            ng-model="variable.type"
+                                            ng-options="t.value as t.label for t in c.variableTypes">
+                                    </select>
+                                </td>
+                                <td>
+                                    <span class="badge" ng-class="variable.mandatory ? 'badge-danger' : 'badge-secondary'">
+                                        {{variable.mandatory ? 'Required' : 'Optional'}}
+                                    </span>
+                                    <input type="checkbox" ng-if="c.editingIndex === $index" 
+                                           ng-model="variable.mandatory">
+                                </td>
+                                <td>
+                                    <button class="btn btn-sm btn-link" ng-click="c.editVariable($index)" 
+                                            ng-if="c.editingIndex !== $index">
+                                        <i class="fa fa-pencil"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-success" ng-click="c.saveVariableEdit($index)" 
+                                            ng-if="c.editingIndex === $index">
+                                        <i class="fa fa-check"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-link text-danger" ng-click="c.removeVariable($index)">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- AI Suggestions -->
+                <div class="ai-suggestions" ng-if="c.aiSuggestions && c.aiSuggestions.length > 0">
+                    <h5><i class="fa fa-lightbulb-o"></i> AI Suggestions</h5>
+                    <ul>
+                        <li ng-repeat="suggestion in c.aiSuggestions">{{suggestion}}</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="preview-actions">
+                <button class="btn btn-success btn-lg" ng-click="c.createFromPreview()">
+                    <i class="fa fa-check"></i> Create Catalog Item
+                </button>
+                <button class="btn btn-outline-secondary" ng-click="c.startChat()">
+                    <i class="fa fa-comments"></i> Refine with Chat
+                </button>
+            </div>
+        </div>
+
+        <!-- Success Results Section -->
+        <div class="results-section" ng-if="c.showResults">
+            <div class="success-banner">
+                <div class="success-icon">
+                    <i class="fa fa-check-circle fa-3x"></i>
+                </div>
+                <h4>Catalog Item Created Successfully!</h4>
+                <p>{{c.successMessage}}</p>
+            </div>
+
+            <!-- Created Item Details -->
+            <div class="created-item-card">
+                <h5><i class="fa fa-list-alt"></i> Created Catalog Item</h5>
+                <div class="item-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Name:</span>
+                        <span class="detail-value">{{c.createdItem.name}}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Sys ID:</span>
+                        <span class="detail-value code">{{c.createdItem.sys_id}}</span>
+                    </div>
+                    <div class="detail-row" ng-if="c.createdItem.description">
+                        <span class="detail-label">Description:</span>
+                        <span class="detail-value">{{c.createdItem.description}}</span>
+                    </div>
+                </div>
+                <button class="btn btn-info" ng-click="c.viewCatalogItem()">
+                    <i class="fa fa-external-link"></i> Open Catalog Item
+                </button>
+            </div>
+
+            <!-- Created Variables -->
+            <div class="variables-card" ng-if="c.createdVariables.length > 0">
+                <h5><i class="fa fa-th-list"></i> Created Variables ({{c.createdVariables.length}})</h5>
+                <table class="table table-striped">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Label</th>
+                            <th>Type</th>
+                            <th>Mandatory</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="variable in c.createdVariables">
+                            <td>{{$index + 1}}</td>
+                            <td>{{variable.label || variable.name}}</td>
+                            <td>
+                                <i class="fa" ng-class="c.getVariableTypeIcon(variable.type)"></i>
+                                {{c.getVariableTypeName(variable.type)}}
+                            </td>
+                            <td>
+                                <span class="badge" ng-class="variable.mandatory ? 'badge-danger' : 'badge-secondary'">
+                                    {{variable.mandatory ? 'Yes' : 'No'}}
+                                </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <div class="result-actions">
+                <button class="btn btn-primary" ng-click="c.clearForm()">
+                    <i class="fa fa-plus"></i> Create Another
+                </button>
+            </div>
+        </div>
+
+        <!-- Sample Prompts -->
+        <div class="samples-section">
+            <h5><i class="fa fa-lightbulb-o"></i> Try These Examples</h5>
+            <p class="samples-description">Click any example to see Now Assist in action:</p>
+            <div class="sample-prompts">
+                <div class="sample-prompt" ng-repeat="prompt in c.samplePrompts" ng-click="c.useSamplePrompt(prompt)">
+                    <i class="fa fa-quote-left"></i>
+                    <span class="prompt-text">{{prompt}}</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Chat Mode Interface -->
+    <div class="chat-interface" ng-if="c.showChat">
+        <div class="chat-header">
+            <div class="chat-title">
+                <i class="fa fa-comments"></i>
+                <span>Chat with Now Assist</span>
+            </div>
+            <button class="btn btn-sm btn-light" ng-click="c.closeChat()">
+                <i class="fa fa-times"></i> Exit Chat
+            </button>
+        </div>
+
+        <div class="chat-container">
+            <!-- Chat Messages -->
+            <div class="chat-messages">
+                <div class="message" ng-repeat="msg in c.chatMessages" 
+                     ng-class="{'user-message': msg.role === 'user', 'assistant-message': msg.role === 'assistant'}">
+                    <div class="message-avatar">
+                        <i class="fa" ng-class="msg.role === 'user' ? 'fa-user' : 'fa-robot'"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="message-text">{{msg.content}}</div>
+                    </div>
+                </div>
+                
+                <!-- Typing indicator -->
+                <div class="message assistant-message" ng-if="c.isTyping">
+                    <div class="message-avatar">
+                        <i class="fa fa-robot"></i>
+                    </div>
+                    <div class="message-content">
+                        <div class="typing-indicator">
+                            <span></span><span></span><span></span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Preview Panel (in chat) -->
+            <div class="chat-preview" ng-if="c.showPreview && c.parsedConfig">
+                <div class="chat-preview-header">
+                    <h6><i class="fa fa-eye"></i> Current Configuration</h6>
+                </div>
+                <div class="chat-preview-content">
+                    <p><strong>{{c.parsedConfig.itemName}}</strong></p>
+                    <p>{{c.parsedConfig.variables.length}} variables configured</p>
+                    <button class="btn btn-success btn-sm" ng-click="c.generateWithAI()">
+                        <i class="fa fa-check"></i> Create This Item
+                    </button>
+                </div>
+            </div>
+
+            <!-- Chat Input -->
+            <div class="chat-input-container">
+                <textarea 
+                    class="form-control chat-input" 
+                    ng-model="c.chatInput" 
+                    placeholder="Type your message... (Press Enter to send)"
+                    rows="2"
+                    ng-keypress="c.onChatKeyPress($event)"
+                    ng-disabled="c.isTyping">
+                </textarea>
+                <button class="btn btn-primary send-btn" ng-click="c.sendChatMessage()" ng-disabled="c.isTyping || !c.chatInput">
+                    <i class="fa fa-paper-plane"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>

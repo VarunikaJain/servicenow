@@ -1,0 +1,290 @@
+/*
+ * Now Assist Skill Configuration
+ * For Catalog Item Generator
+ * 
+ * This file contains the configuration to create a custom Now Assist skill
+ * for the catalog item generator functionality.
+ */
+
+// =============================================================================
+// SKILL DEFINITION
+// =============================================================================
+
+var skillDefinition = {
+    "name": "Catalog Item Generator",
+    "description": "Generate ServiceNow catalog items from natural language descriptions",
+    "category": "Service Catalog",
+    "active": true,
+    "skill_type": "generative",
+    
+    // Input schema - what the skill expects
+    "input_schema": {
+        "type": "object",
+        "properties": {
+            "user_request": {
+                "type": "string",
+                "description": "Natural language description of the catalog item to create"
+            },
+            "context": {
+                "type": "object",
+                "properties": {
+                    "existing_config": {
+                        "type": "object",
+                        "description": "Existing configuration to refine"
+                    },
+                    "conversation_history": {
+                        "type": "array",
+                        "description": "Previous messages in the conversation"
+                    }
+                }
+            }
+        },
+        "required": ["user_request"]
+    },
+    
+    // Output schema - what the skill returns
+    "output_schema": {
+        "type": "object",
+        "properties": {
+            "catalog_config": {
+                "type": "object",
+                "properties": {
+                    "isValid": { "type": "boolean" },
+                    "itemName": { "type": "string" },
+                    "description": { "type": "string" },
+                    "category": { "type": "string" },
+                    "variables": {
+                        "type": "array",
+                        "items": {
+                            "type": "object",
+                            "properties": {
+                                "name": { "type": "string" },
+                                "label": { "type": "string" },
+                                "type": { "type": "string" },
+                                "mandatory": { "type": "boolean" },
+                                "order": { "type": "integer" },
+                                "options": { "type": "array" },
+                                "referenceTable": { "type": "string" },
+                                "helpText": { "type": "string" }
+                            }
+                        }
+                    }
+                }
+            },
+            "suggestions": {
+                "type": "array",
+                "items": { "type": "string" }
+            },
+            "response_message": {
+                "type": "string"
+            }
+        }
+    }
+};
+
+// =============================================================================
+// SYSTEM PROMPT TEMPLATE
+// =============================================================================
+
+var systemPromptTemplate = `
+You are a ServiceNow catalog item configuration assistant powered by Now Assist. 
+Your task is to help users create catalog items by understanding their natural language requests.
+
+## Your Capabilities:
+1. Parse natural language to extract catalog item specifications
+2. Recommend appropriate field types based on context
+3. Suggest improvements to form design
+4. Support iterative refinement through conversation
+
+## Variable Type Mapping:
+- "name", "employee", "user" → reference to sys_user
+- "department", "team" → reference to cmn_department
+- "date", "when" → date field
+- "time" → datetime field
+- "description", "details", "justification" → textarea
+- "select", "choose", "dropdown", "options" → dropdown (extract options if mentioned)
+- "yes/no", "approve", "checkbox" → checkbox or yes/no
+- "number", "quantity", "count" → integer
+- "email" → text (email validation)
+- Default → single line text
+
+## Rules:
+1. Always provide meaningful field names in snake_case
+2. Create user-friendly labels
+3. Infer mandatory fields from words like "required", "must", "mandatory"
+4. Suggest appropriate categories based on the item type
+5. Provide helpful suggestions for improving the form
+
+## Response Format:
+Always respond with valid JSON in this structure:
+{
+  "isValid": true,
+  "itemName": "Descriptive Name",
+  "description": "Brief description of the item's purpose",
+  "category": "Suggested Category",
+  "variables": [
+    {
+      "name": "field_name",
+      "label": "Display Label",
+      "type": "text|textarea|dropdown|checkbox|date|datetime|reference|integer",
+      "mandatory": true|false,
+      "order": 100,
+      "options": [{"value": "opt1", "label": "Option 1"}],  // For dropdowns
+      "referenceTable": "table_name",  // For references
+      "helpText": "Help text for the field"
+    }
+  ],
+  "suggestions": [
+    "Consider adding...",
+    "You might want to..."
+  ]
+}
+`;
+
+// =============================================================================
+// INSTALLATION SCRIPT
+// =============================================================================
+
+/*
+ * Run this script in a Background Script to create the skill:
+ */
+
+function createCatalogGeneratorSkill() {
+    // Check if skill already exists
+    var existingSkill = new GlideRecord('sys_cs_skill');
+    existingSkill.addQuery('name', 'Catalog Item Generator');
+    existingSkill.query();
+    
+    if (existingSkill.next()) {
+        gs.info('Catalog Item Generator skill already exists: ' + existingSkill.sys_id);
+        return existingSkill.sys_id.toString();
+    }
+    
+    // Create new skill
+    var skill = new GlideRecord('sys_cs_skill');
+    skill.initialize();
+    skill.name = 'Catalog Item Generator';
+    skill.description = 'Generate ServiceNow catalog items from natural language descriptions';
+    skill.active = true;
+    skill.skill_type = 'generative';
+    skill.system_prompt = systemPromptTemplate;
+    
+    var skillSysId = skill.insert();
+    gs.info('Created Catalog Item Generator skill: ' + skillSysId);
+    
+    return skillSysId;
+}
+
+// =============================================================================
+// SKILL INVOCATION EXAMPLES
+// =============================================================================
+
+/*
+ * Example 1: Basic skill invocation
+ */
+function invokeSkillBasic(userRequest) {
+    var genAI = new sn_gen_ai.GenerativeAIService();
+    
+    var payload = {
+        skill_id: 'catalog_item_generator', // or use sys_id
+        input: {
+            user_request: userRequest
+        }
+    };
+    
+    var response = genAI.invokeSkill(JSON.stringify(payload));
+    return JSON.parse(response);
+}
+
+/*
+ * Example 2: Skill invocation with context (for refinement)
+ */
+function invokeSkillWithContext(userRequest, existingConfig, conversationHistory) {
+    var genAI = new sn_gen_ai.GenerativeAIService();
+    
+    var payload = {
+        skill_id: 'catalog_item_generator',
+        input: {
+            user_request: userRequest,
+            context: {
+                existing_config: existingConfig,
+                conversation_history: conversationHistory
+            }
+        }
+    };
+    
+    var response = genAI.invokeSkill(JSON.stringify(payload));
+    return JSON.parse(response);
+}
+
+// =============================================================================
+// TESTING EXAMPLES
+// =============================================================================
+
+var testCases = [
+    {
+        input: "Create a laptop request form with employee name, laptop model dropdown with MacBook Pro and Dell XPS options, justification, and delivery date. First two fields mandatory.",
+        expectedOutput: {
+            itemName: "Laptop Request",
+            variableCount: 4,
+            mandatoryCount: 2,
+            variableTypes: ["reference", "dropdown", "textarea", "date"]
+        }
+    },
+    {
+        input: "I need a form for requesting office supplies",
+        expectedOutput: {
+            itemName: "Office Supplies Request",
+            variableCount: ">=3",
+            shouldHaveCategories: true
+        }
+    },
+    {
+        input: "Build an employee onboarding checklist with new hire name, start date, department, manager, and equipment needs",
+        expectedOutput: {
+            itemName: "Employee Onboarding",
+            variableCount: 5,
+            hasReferenceFields: true
+        }
+    }
+];
+
+// =============================================================================
+// TROUBLESHOOTING
+// =============================================================================
+
+/*
+ * Common Issues and Solutions:
+ * 
+ * 1. "Now Assist not available"
+ *    - Check if sn_gen_ai plugin is activated
+ *    - Verify Now Assist license is active
+ *    - Ensure Generative AI Controller is configured
+ * 
+ * 2. "Skill not found"
+ *    - Run the installation script above
+ *    - Check skill is active in sys_cs_skill table
+ *    - Verify skill_id matches
+ * 
+ * 3. "Invalid JSON response"
+ *    - AI model may be returning markdown-wrapped JSON
+ *    - Use parseAIResponse() function to clean response
+ *    - Check system prompt is correctly formatted
+ * 
+ * 4. "Permission denied"
+ *    - User needs now_assist_user or now_assist_admin role
+ *    - Check ACLs on sn_gen_ai tables
+ */
+
+// =============================================================================
+// VERSION COMPATIBILITY
+// =============================================================================
+
+/*
+ * This skill configuration is compatible with:
+ * - ServiceNow Vancouver and later releases
+ * - Now Assist versions 1.0+
+ * - Requires: sn_gen_ai plugin activated
+ * 
+ * For older releases, use the regex-based fallback in the server script.
+ */

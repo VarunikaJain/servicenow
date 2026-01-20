@@ -1,0 +1,332 @@
+api.controller = function($scope, spUtil, $timeout) {
+    /* 
+     * Catalog Item Generator - Now Assist Version
+     * Client Controller with AI Chat Interface
+     */
+    var c = this;
+
+    // Initialize state
+    c.naturalLanguageInput = '';
+    c.isLoading = false;
+    c.showResults = false;
+    c.showPreview = false;
+    c.showChat = false;
+    c.error = null;
+
+    // Chat state
+    c.chatMessages = [];
+    c.chatInput = '';
+    c.isTyping = false;
+
+    // Sample prompts showcasing Now Assist capabilities
+    c.samplePrompts = [
+        'Create a laptop request form with fields for employee name, laptop model as a dropdown with options MacBook Pro, Dell XPS, and ThinkPad, business justification as a text area, and delivery date - make employee and justification mandatory',
+        'I need an employee onboarding catalog item with new hire name, start date, department reference, manager reference, equipment needed as checkboxes, and special requests - first 4 fields required',
+        'Build a software access request with user lookup, application dropdown containing SAP, Salesforce, and Jira, access level dropdown with Read and Write options, justification, and approval date',
+        'Create an IT support request form with issue category dropdown, detailed description, priority level, affected system reference, and attachment option',
+        'Generate a conference room booking form with room selection reference, meeting date, start time, end time, number of attendees, and catering required checkbox'
+    ];
+
+    /**
+     * Preview using Now Assist AI
+     */
+    c.previewWithAI = function() {
+        if (!c.naturalLanguageInput || c.naturalLanguageInput.trim() === '') {
+            spUtil.addErrorMessage('Please enter a description of your catalog item');
+            return;
+        }
+
+        c.isLoading = true;
+        c.showResults = false;
+        c.showPreview = false;
+        c.error = null;
+
+        c.server.get({
+            action: 'preview',
+            naturalLanguageInput: c.naturalLanguageInput
+        }).then(function(response) {
+            c.isLoading = false;
+            if (response.data.success) {
+                c.showPreview = true;
+                c.parsedConfig = response.data.parsedConfig;
+                c.aiSuggestions = response.data.aiSuggestions;
+            } else {
+                c.error = 'Could not process your request. Please try rephrasing.';
+                spUtil.addErrorMessage(c.error);
+            }
+        }, function(error) {
+            c.isLoading = false;
+            c.error = 'Server error occurred';
+            spUtil.addErrorMessage(c.error);
+        });
+    };
+
+    /**
+     * Generate catalog item using Now Assist
+     */
+    c.generateWithAI = function() {
+        if (!c.naturalLanguageInput || c.naturalLanguageInput.trim() === '') {
+            spUtil.addErrorMessage('Please enter a description');
+            return;
+        }
+
+        c.isLoading = true;
+        c.showResults = false;
+        c.error = null;
+
+        c.server.get({
+            action: 'generate',
+            naturalLanguageInput: c.naturalLanguageInput
+        }).then(function(response) {
+            c.isLoading = false;
+            if (response.data.success) {
+                c.showResults = true;
+                c.showPreview = false;
+                c.createdItem = response.data.createdItem;
+                c.createdVariables = response.data.createdVariables;
+                c.parsedConfig = response.data.parsedConfig;
+                c.successMessage = response.data.message;
+                spUtil.addInfoMessage(response.data.message);
+            } else {
+                c.error = response.data.message || 'Failed to create catalog item';
+                spUtil.addErrorMessage(c.error);
+            }
+        }, function(error) {
+            c.isLoading = false;
+            c.error = 'Server error occurred';
+            spUtil.addErrorMessage(c.error);
+        });
+    };
+
+    /**
+     * Start chat mode for iterative refinement
+     */
+    c.startChat = function() {
+        c.showChat = true;
+        c.chatMessages = [];
+        
+        // Add initial AI message
+        c.chatMessages.push({
+            role: 'assistant',
+            content: 'Hello! I\'m Now Assist. I can help you create a catalog item step by step. What kind of form or request would you like to create?'
+        });
+
+        if (c.naturalLanguageInput) {
+            // If there's already input, process it as first message
+            c.sendChatMessage(c.naturalLanguageInput);
+        }
+    };
+
+    /**
+     * Send chat message
+     */
+    c.sendChatMessage = function(customMessage) {
+        var message = customMessage || c.chatInput;
+        
+        if (!message || message.trim() === '') {
+            return;
+        }
+
+        // Add user message to chat
+        c.chatMessages.push({
+            role: 'user',
+            content: message
+        });
+
+        c.chatInput = '';
+        c.isTyping = true;
+
+        // Scroll to bottom
+        $timeout(function() {
+            var chatContainer = document.querySelector('.chat-messages');
+            if (chatContainer) {
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        }, 100);
+
+        // Send to server
+        c.server.get({
+            action: 'chat',
+            message: message,
+            conversationHistory: c.chatMessages.slice(0, -1) // Exclude the message we just added
+        }).then(function(response) {
+            c.isTyping = false;
+            if (response.data.success) {
+                c.chatMessages.push({
+                    role: 'assistant',
+                    content: response.data.aiResponse
+                });
+
+                if (response.data.parsedConfig && response.data.parsedConfig.isValid) {
+                    c.parsedConfig = response.data.parsedConfig;
+                    c.showPreview = true;
+                }
+            } else {
+                c.chatMessages.push({
+                    role: 'assistant',
+                    content: 'I apologize, but I encountered an issue. Could you please rephrase your request?'
+                });
+            }
+
+            // Scroll to bottom
+            $timeout(function() {
+                var chatContainer = document.querySelector('.chat-messages');
+                if (chatContainer) {
+                    chatContainer.scrollTop = chatContainer.scrollHeight;
+                }
+            }, 100);
+        });
+    };
+
+    /**
+     * Handle enter key in chat
+     */
+    c.onChatKeyPress = function(event) {
+        if (event.keyCode === 13 && !event.shiftKey) {
+            event.preventDefault();
+            c.sendChatMessage();
+        }
+    };
+
+    /**
+     * Close chat mode
+     */
+    c.closeChat = function() {
+        c.showChat = false;
+    };
+
+    /**
+     * Use sample prompt
+     */
+    c.useSamplePrompt = function(prompt) {
+        c.naturalLanguageInput = prompt;
+        c.showResults = false;
+        c.showPreview = false;
+        c.error = null;
+    };
+
+    /**
+     * Clear form
+     */
+    c.clearForm = function() {
+        c.naturalLanguageInput = '';
+        c.showResults = false;
+        c.showPreview = false;
+        c.showChat = false;
+        c.error = null;
+        c.createdItem = null;
+        c.createdVariables = [];
+        c.parsedConfig = null;
+        c.chatMessages = [];
+    };
+
+    /**
+     * View created catalog item
+     */
+    c.viewCatalogItem = function() {
+        if (c.createdItem && c.createdItem.sys_id) {
+            window.open('/sc_cat_item.do?sys_id=' + c.createdItem.sys_id, '_blank');
+        }
+    };
+
+    /**
+     * Create from preview
+     */
+    c.createFromPreview = function() {
+        c.generateWithAI();
+    };
+
+    /**
+     * Edit variable in preview
+     */
+    c.editVariable = function(index) {
+        // Allow inline editing of variable configuration
+        c.editingIndex = index;
+    };
+
+    /**
+     * Save variable edit
+     */
+    c.saveVariableEdit = function(index) {
+        c.editingIndex = -1;
+    };
+
+    /**
+     * Add variable to preview
+     */
+    c.addVariable = function() {
+        if (!c.parsedConfig.variables) {
+            c.parsedConfig.variables = [];
+        }
+        c.parsedConfig.variables.push({
+            name: 'new_variable_' + (c.parsedConfig.variables.length + 1),
+            label: 'New Variable',
+            type: 'text',
+            mandatory: false,
+            order: (c.parsedConfig.variables.length + 1) * 100
+        });
+    };
+
+    /**
+     * Remove variable from preview
+     */
+    c.removeVariable = function(index) {
+        c.parsedConfig.variables.splice(index, 1);
+    };
+
+    /**
+     * Get variable type display name
+     */
+    c.getVariableTypeName = function(type) {
+        var typeNames = {
+            'text': 'Single Line Text',
+            'textarea': 'Multi Line Text',
+            'dropdown': 'Dropdown',
+            'select': 'Dropdown',
+            'checkbox': 'Checkbox',
+            'date': 'Date',
+            'datetime': 'Date/Time',
+            'reference': 'Reference',
+            'integer': 'Integer',
+            'email': 'Email',
+            'phone': 'Phone',
+            'yesno': 'Yes/No'
+        };
+        return typeNames[type] || type;
+    };
+
+    /**
+     * Get variable type icon
+     */
+    c.getVariableTypeIcon = function(type) {
+        var typeIcons = {
+            'text': 'fa-font',
+            'textarea': 'fa-align-left',
+            'dropdown': 'fa-caret-square-o-down',
+            'select': 'fa-caret-square-o-down',
+            'checkbox': 'fa-check-square-o',
+            'date': 'fa-calendar',
+            'datetime': 'fa-clock-o',
+            'reference': 'fa-link',
+            'integer': 'fa-hashtag',
+            'email': 'fa-envelope',
+            'phone': 'fa-phone',
+            'yesno': 'fa-toggle-on'
+        };
+        return typeIcons[type] || 'fa-question';
+    };
+
+    // Available variable types for editing
+    c.variableTypes = [
+        { value: 'text', label: 'Single Line Text' },
+        { value: 'textarea', label: 'Multi Line Text' },
+        { value: 'dropdown', label: 'Dropdown' },
+        { value: 'checkbox', label: 'Checkbox' },
+        { value: 'date', label: 'Date' },
+        { value: 'datetime', label: 'Date/Time' },
+        { value: 'reference', label: 'Reference' },
+        { value: 'integer', label: 'Integer' },
+        { value: 'yesno', label: 'Yes/No' }
+    ];
+
+};
