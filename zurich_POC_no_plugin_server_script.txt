@@ -1,0 +1,245 @@
+(function() {
+    /*
+     * Catalog Item Generator POC - Direct OpenAI Version
+     * Works WITHOUT sn_gen_ai plugin!
+     * Calls OpenAI API directly via REST
+     */
+
+    data.message = '';
+    data.success = false;
+    data.catalogItem = null;
+    data.debug = [];
+
+    // ⚠️ IMPORTANT: Set your OpenAI API key here
+    var OPENAI_API_KEY = gs.getProperty('openai.api_key', 'YOUR-API-KEY-HERE');
+    
+    // Handle create action
+    if (input && input.action === 'create') {
+        var result = createCatalogWithAI(input.userRequest);
+        data.success = result.success;
+        data.message = result.message;
+        data.catalogItem = result.catalogItem;
+        data.debug = result.debug;
+    }
+
+    /**
+     * Main function to create catalog item using AI
+     */
+    function createCatalogWithAI(userRequest) {
+        var result = {
+            success: false,
+            message: '',
+            catalogItem: null,
+            debug: []
+        };
+
+        try {
+            // Check API key
+            if (!OPENAI_API_KEY || OPENAI_API_KEY === 'YOUR-API-KEY-HERE') {
+                result.message = 'OpenAI API key not configured. Please set it in the server script.';
+                result.debug.push('API key missing');
+                return result;
+            }
+
+            result.debug.push('Calling OpenAI API...');
+            
+            // Call OpenAI directly
+            var aiResponse = callOpenAIDirect(userRequest);
+            
+            if (!aiResponse) {
+                result.message = 'Could not get response from OpenAI. Check API key and network.';
+                return result;
+            }
+
+            result.debug.push('AI Response received');
+
+            // Parse AI response
+            var config = parseAIResponse(aiResponse);
+            
+            if (!config || !config.name) {
+                result.message = 'Could not parse AI response';
+                result.debug.push('Parse failed. Raw response: ' + aiResponse.substring(0, 200));
+                return result;
+            }
+
+            result.debug.push('Creating catalog item: ' + config.name);
+
+            // Create catalog item
+            var itemSysId = createCatalogItemRecord(config);
+            
+            if (!itemSysId) {
+                result.message = 'Failed to create catalog item record';
+                return result;
+            }
+
+            // Create variables
+            var varCount = createVariables(itemSysId, config.variables || []);
+            result.debug.push('Created ' + varCount + ' variables');
+
+            // Success!
+            result.success = true;
+            result.message = 'Created "' + config.name + '" with ' + varCount + ' variables';
+            result.catalogItem = {
+                sys_id: itemSysId,
+                name: config.name,
+                variables: varCount
+            };
+
+        } catch (e) {
+            result.message = 'Error: ' + e.message;
+            result.debug.push('Exception: ' + e.message);
+            gs.error('Catalog Generator Error: ' + e.message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Call OpenAI API directly via REST
+     */
+    function callOpenAIDirect(userRequest) {
+        var systemPrompt = getSystemPrompt();
+        
+        try {
+            var request = new sn_ws.RESTMessageV2();
+            request.setEndpoint('https://api.openai.com/v1/chat/completions');
+            request.setHttpMethod('POST');
+            request.setRequestHeader('Content-Type', 'application/json');
+            request.setRequestHeader('Authorization', 'Bearer ' + OPENAI_API_KEY);
+            
+            var body = {
+                "model": "gpt-3.5-turbo",
+                "messages": [
+                    {"role": "system", "content": systemPrompt},
+                    {"role": "user", "content": userRequest}
+                ],
+                "temperature": 0.3,
+                "max_tokens": 1500
+            };
+            
+            request.setRequestBody(JSON.stringify(body));
+            
+            var response = request.execute();
+            var statusCode = response.getStatusCode();
+            var responseBody = response.getBody();
+            
+            gs.info('OpenAI Status: ' + statusCode);
+            
+            if (statusCode == 200) {
+                var jsonResponse = JSON.parse(responseBody);
+                if (jsonResponse.choices && jsonResponse.choices.length > 0) {
+                    return jsonResponse.choices[0].message.content;
+                }
+            } else {
+                gs.error('OpenAI Error: ' + responseBody);
+            }
+        } catch (e) {
+            gs.error('OpenAI REST call failed: ' + e.message);
+        }
+        
+        return null;
+    }
+
+    /**
+     * System prompt for AI
+     */
+    function getSystemPrompt() {
+        return 'You are a ServiceNow catalog item configuration assistant.\n\n' +
+            'Parse the user request and return ONLY a JSON object (no other text) with this structure:\n' +
+            '{\n' +
+            '  "name": "Catalog Item Name",\n' +
+            '  "description": "Brief description",\n' +
+            '  "variables": [\n' +
+            '    {"name": "var_name", "label": "Display Label", "type": "string", "mandatory": true}\n' +
+            '  ]\n' +
+            '}\n\n' +
+            'Variable types: string, text, choice, reference, date, checkbox, integer\n' +
+            'Rules:\n' +
+            '- Use snake_case for variable names\n' +
+            '- Set mandatory:true if user says "required" or "mandatory"\n' +
+            '- Return ONLY valid JSON, no markdown, no explanation';
+    }
+
+    /**
+     * Parse AI response
+     */
+    function parseAIResponse(aiResponse) {
+        try {
+            var jsonStr = aiResponse;
+            
+            if (typeof aiResponse === 'object') {
+                return aiResponse;
+            }
+            
+            // Remove markdown if present
+            jsonStr = jsonStr.replace(/```json\s*/gi, '');
+            jsonStr = jsonStr.replace(/```\s*/gi, '');
+            jsonStr = jsonStr.trim();
+            
+            // Extract JSON
+            var jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                jsonStr = jsonMatch[0];
+            }
+            
+            return JSON.parse(jsonStr);
+        } catch (e) {
+            gs.error('JSON parse error: ' + e.message);
+            return null;
+        }
+    }
+
+    /**
+     * Create catalog item record
+     */
+    function createCatalogItemRecord(config) {
+        var gr = new GlideRecord('sc_cat_item');
+        gr.initialize();
+        gr.name = config.name || 'Generated Catalog Item';
+        gr.short_description = config.description || config.name;
+        gr.description = 'Generated by AI POC\n' + (config.description || '');
+        gr.active = true;
+        
+        return gr.insert();
+    }
+
+    /**
+     * Create variables
+     */
+    function createVariables(itemSysId, variables) {
+        var typeMap = {
+            'string': 6,
+            'text': 2,
+            'choice': 5,
+            'dropdown': 5,
+            'reference': 8,
+            'date': 9,
+            'checkbox': 7,
+            'boolean': 7,
+            'integer': 4,
+            'number': 4
+        };
+
+        var count = 0;
+        for (var i = 0; i < variables.length; i++) {
+            var v = variables[i];
+            
+            var gr = new GlideRecord('item_option_new');
+            gr.initialize();
+            gr.name = v.name || 'variable_' + (i + 1);
+            gr.question_text = v.label || v.name || 'Variable ' + (i + 1);
+            gr.cat_item = itemSysId;
+            gr.type = typeMap[v.type] || 6;
+            gr.mandatory = v.mandatory === true;
+            gr.order = (i + 1) * 100;
+            gr.active = true;
+            
+            if (gr.insert()) {
+                count++;
+            }
+        }
+        
+        return count;
+    }
+
+})();
