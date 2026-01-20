@@ -1,0 +1,58 @@
+<div class="catalog-gen-poc">
+    <div class="header">
+        <h2><i class="fa fa-magic"></i> Catalog Item Generator</h2>
+        <span class="badge">Now Assist POC - Zurich</span>
+    </div>
+
+    <div class="main-section">
+        <div class="input-area">
+            <label>Describe the catalog item you want:</label>
+            <textarea 
+                class="form-control" 
+                ng-model="c.userRequest"
+                placeholder="Example: Create a catalog item with 5 variables and 2 mandatory"
+                rows="3"
+                ng-disabled="c.isLoading">
+            </textarea>
+
+            <div class="btn-row">
+                <button class="btn btn-primary" ng-click="c.create()" ng-disabled="c.isLoading || !c.userRequest">
+                    <i class="fa" ng-class="c.isLoading ? 'fa-spinner fa-spin' : 'fa-rocket'"></i>
+                    {{c.isLoading ? 'Creating...' : 'Create with Now Assist'}}
+                </button>
+                <button class="btn btn-default" ng-click="c.clear()">Clear</button>
+            </div>
+        </div>
+
+        <!-- Samples -->
+        <div class="samples">
+            <strong>Try these:</strong>
+            <div class="sample" ng-repeat="s in c.samples" ng-click="c.useSample(s)">
+                {{s}}
+            </div>
+        </div>
+
+        <!-- Result -->
+        <div class="result-area" ng-if="c.result">
+            <div class="success" ng-if="c.result.success">
+                <i class="fa fa-check-circle"></i>
+                <h4>Success!</h4>
+                <p>{{c.result.message}}</p>
+                <button class="btn btn-info" ng-click="c.openItem()">
+                    <i class="fa fa-external-link"></i> Open Catalog Item
+                </button>
+            </div>
+
+            <div class="error" ng-if="!c.result.success">
+                <i class="fa fa-exclamation-circle"></i>
+                <p>{{c.result.message}}</p>
+            </div>
+
+            <!-- Debug Info -->
+            <div class="debug-section">
+                <a ng-click="c.toggleDebug()">{{c.showDebug ? 'Hide' : 'Show'}} Debug Info</a>
+                <pre ng-if="c.showDebug">{{c.result.debug | json}}</pre>
+            </div>
+        </div>
+    </div>
+</div>

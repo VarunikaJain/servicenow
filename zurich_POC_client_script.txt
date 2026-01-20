@@ -1,0 +1,68 @@
+api.controller = function($scope, spUtil) {
+    var c = this;
+
+    // State
+    c.userRequest = '';
+    c.isLoading = false;
+    c.result = null;
+    c.showDebug = false;
+
+    // Sample prompts
+    c.samples = [
+        'Create a catalog item with 5 variables and 2 mandatory',
+        'Create laptop request with employee name, laptop model, and justification - first two required',
+        'Build a software access form with user, application dropdown, access level, and notes'
+    ];
+
+    // Create catalog item
+    c.create = function() {
+        if (!c.userRequest.trim()) {
+            spUtil.addErrorMessage('Please enter a description');
+            return;
+        }
+
+        c.isLoading = true;
+        c.result = null;
+
+        c.server.get({
+            action: 'create',
+            userRequest: c.userRequest
+        }).then(function(response) {
+            c.isLoading = false;
+            c.result = response.data;
+
+            if (response.data.success) {
+                spUtil.addInfoMessage(response.data.message);
+            } else {
+                spUtil.addErrorMessage(response.data.message || 'Failed to create');
+            }
+        }, function(error) {
+            c.isLoading = false;
+            spUtil.addErrorMessage('Server error');
+        });
+    };
+
+    // Use sample
+    c.useSample = function(sample) {
+        c.userRequest = sample;
+        c.result = null;
+    };
+
+    // Open catalog item
+    c.openItem = function() {
+        if (c.result && c.result.catalogItem) {
+            window.open('/sc_cat_item.do?sys_id=' + c.result.catalogItem.sys_id, '_blank');
+        }
+    };
+
+    // Clear
+    c.clear = function() {
+        c.userRequest = '';
+        c.result = null;
+    };
+
+    // Toggle debug
+    c.toggleDebug = function() {
+        c.showDebug = !c.showDebug;
+    };
+};

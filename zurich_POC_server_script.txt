@@ -1,0 +1,248 @@
+(function() {
+    /*
+     * Catalog Item Generator POC - Zurich Version
+     * Uses Now Assist Generative AI
+     */
+
+    data.message = '';
+    data.success = false;
+    data.catalogItem = null;
+    data.debug = [];
+
+    // Handle create action
+    if (input && input.action === 'create') {
+        var result = createCatalogWithAI(input.userRequest);
+        data.success = result.success;
+        data.message = result.message;
+        data.catalogItem = result.catalogItem;
+        data.debug = result.debug;
+        data.aiResponse = result.aiResponse;
+    }
+
+    /**
+     * Main function to create catalog item using AI
+     */
+    function createCatalogWithAI(userRequest) {
+        var result = {
+            success: false,
+            message: '',
+            catalogItem: null,
+            debug: [],
+            aiResponse: null
+        };
+
+        try {
+            // Call Generative AI
+            result.debug.push('Calling Now Assist AI...');
+            var aiResponse = callGenerativeAI(userRequest);
+            
+            if (!aiResponse) {
+                result.message = 'Could not get AI response. Check Generative AI configuration.';
+                return result;
+            }
+
+            result.debug.push('AI Response received');
+            result.aiResponse = aiResponse;
+
+            // Parse AI response
+            var config = parseAIResponse(aiResponse);
+            
+            if (!config || !config.name) {
+                result.message = 'Could not parse AI response';
+                result.debug.push('Parse failed: ' + JSON.stringify(aiResponse));
+                return result;
+            }
+
+            result.debug.push('Creating catalog item: ' + config.name);
+
+            // Create catalog item
+            var itemSysId = createCatalogItemRecord(config);
+            
+            if (!itemSysId) {
+                result.message = 'Failed to create catalog item record';
+                return result;
+            }
+
+            // Create variables
+            var varCount = createVariables(itemSysId, config.variables || []);
+            result.debug.push('Created ' + varCount + ' variables');
+
+            // Success
+            result.success = true;
+            result.message = 'Created "' + config.name + '" with ' + varCount + ' variables';
+            result.catalogItem = {
+                sys_id: itemSysId,
+                name: config.name,
+                variables: varCount
+            };
+
+        } catch (e) {
+            result.message = 'Error: ' + e.message;
+            result.debug.push('Exception: ' + e.message);
+            gs.error('Catalog Generator POC Error: ' + e.message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Call Generative AI Service (Zurich API)
+     */
+    function callGenerativeAI(userRequest) {
+        var systemPrompt = getSystemPrompt();
+        
+        try {
+            // Method 1: Zurich Generative AI Service
+            var genAIService = new sn_gen_ai.GenerativeAIService();
+            
+            var payload = {
+                "messages": [
+                    {"role": "system", "content": systemPrompt},
+                    {"role": "user", "content": userRequest}
+                ],
+                "temperature": 0.3,
+                "max_tokens": 2000
+            };
+
+            var response = genAIService.generateText(JSON.stringify(payload));
+            
+            if (response) {
+                // Handle different response formats
+                if (typeof response === 'string') {
+                    return response;
+                } else if (response.choices && response.choices.length > 0) {
+                    return response.choices[0].message.content;
+                } else if (response.result) {
+                    return response.result;
+                }
+                return response;
+            }
+        } catch (e1) {
+            gs.info('Method 1 failed: ' + e1.message);
+        }
+
+        try {
+            // Method 2: Use GlideAIService (alternative Zurich API)
+            var aiService = new sn_gen_ai.GlideAIService();
+            var result = aiService.chat(systemPrompt, userRequest);
+            if (result) {
+                return result;
+            }
+        } catch (e2) {
+            gs.info('Method 2 failed: ' + e2.message);
+        }
+
+        try {
+            // Method 3: REST API call to internal endpoint
+            var request = new sn_ws.RESTMessageV2();
+            request.setEndpoint(gs.getProperty('glide.servlet.uri') + 'api/sn_gen_ai/generate');
+            request.setHttpMethod('POST');
+            request.setRequestHeader('Content-Type', 'application/json');
+            request.setRequestBody(JSON.stringify({
+                system_prompt: systemPrompt,
+                user_prompt: userRequest
+            }));
+            
+            var response = request.execute();
+            if (response.getStatusCode() == 200) {
+                var body = JSON.parse(response.getBody());
+                return body.result || body.response || body;
+            }
+        } catch (e3) {
+            gs.info('Method 3 failed: ' + e3.message);
+        }
+
+        return null;
+    }
+
+    /**
+     * System prompt for AI
+     */
+    function getSystemPrompt() {
+        return 'You are a ServiceNow catalog item configuration assistant.\n\nParse the user\'s request and return a JSON object with this exact structure:\n{\n    "name": "Catalog Item Name",\n    "description": "Brief description",\n    "variables": [\n        {\n            "name": "variable_name",\n            "label": "Display Label",\n            "type": "string",\n            "mandatory": true\n        }\n    ]\n}\n\nVariable types can be: string, text, choice, reference, date, checkbox, integer\n\nRules:\n- Generate meaningful variable names in snake_case\n- Create user-friendly labels\n- Mark fields as mandatory if user says "required" or "mandatory"\n- Default to "string" type if not specified\n- Return ONLY valid JSON, no other text';
+    }
+
+    /**
+     * Parse AI response to extract config
+     */
+    function parseAIResponse(aiResponse) {
+        try {
+            var jsonStr = aiResponse;
+            
+            // Handle if response is already an object
+            if (typeof aiResponse === 'object') {
+                return aiResponse;
+            }
+            
+            // Remove markdown code blocks
+            jsonStr = jsonStr.replace(/```json\s*/gi, '');
+            jsonStr = jsonStr.replace(/```\s*/gi, '');
+            jsonStr = jsonStr.trim();
+            
+            // Find JSON in response
+            var jsonMatch = jsonStr.match(/\{[\s\S]*\}/);
+            if (jsonMatch) {
+                jsonStr = jsonMatch[0];
+            }
+            
+            return JSON.parse(jsonStr);
+        } catch (e) {
+            gs.error('Parse error: ' + e.message + ' | Response: ' + aiResponse);
+            return null;
+        }
+    }
+
+    /**
+     * Create catalog item record
+     */
+    function createCatalogItemRecord(config) {
+        var gr = new GlideRecord('sc_cat_item');
+        gr.initialize();
+        gr.name = config.name || 'Generated Catalog Item';
+        gr.short_description = config.description || config.name;
+        gr.description = 'Generated by Now Assist POC\n' + (config.description || '');
+        gr.active = true;
+        
+        return gr.insert();
+    }
+
+    /**
+     * Create variables for catalog item
+     */
+    function createVariables(itemSysId, variables) {
+        var typeMap = {
+            'string': 6,    // Single Line Text
+            'text': 2,      // Multi Line Text  
+            'choice': 5,    // Select Box
+            'dropdown': 5,  // Select Box
+            'reference': 8, // Reference
+            'date': 9,      // Date
+            'checkbox': 7,  // Checkbox
+            'boolean': 7,   // Checkbox
+            'integer': 4,   // Integer
+            'number': 4     // Integer
+        };
+
+        var count = 0;
+        for (var i = 0; i < variables.length; i++) {
+            var v = variables[i];
+            
+            var gr = new GlideRecord('item_option_new');
+            gr.initialize();
+            gr.name = v.name || 'variable_' + (i + 1);
+            gr.question_text = v.label || v.name || 'Variable ' + (i + 1);
+            gr.cat_item = itemSysId;
+            gr.type = typeMap[v.type] || typeMap['string'];
+            gr.mandatory = v.mandatory === true;
+            gr.order = (i + 1) * 100;
+            gr.active = true;
+            
+            if (gr.insert()) {
+                count++;
+            }
+        }
+        
+        return count;
+    }
+
+})();
