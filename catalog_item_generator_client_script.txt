@@ -1,0 +1,159 @@
+api.controller = function($scope, spUtil, $http) {
+    /* 
+     * Catalog Item Generator - Client Controller
+     * POC for generating catalog items from natural language
+     */
+    var c = this;
+
+    // Initialize state
+    c.naturalLanguageInput = '';
+    c.isLoading = false;
+    c.showResults = false;
+    c.showPreview = false;
+    c.error = null;
+
+    // Sample prompts for user reference
+    c.samplePrompts = [
+        'Create a catalog item with 5 variables and 2 mandatory',
+        'Generate catalog item named "Employee Onboarding" with 3 text fields, 2 dropdowns, first 2 mandatory',
+        'Create service request with 4 variables where 3 are required',
+        'Create catalog item named "IT Equipment Request" in category Hardware with 6 variables and 4 mandatory',
+        'Generate form with 2 text fields, 1 date field, 1 reference field, all mandatory'
+    ];
+
+    /**
+     * Preview the parsed configuration before creating
+     */
+    c.previewCatalogItem = function() {
+        if (!c.naturalLanguageInput || c.naturalLanguageInput.trim() === '') {
+            spUtil.addErrorMessage('Please enter a natural language description');
+            return;
+        }
+
+        c.isLoading = true;
+        c.showResults = false;
+        c.showPreview = false;
+        c.error = null;
+
+        c.server.get({
+            action: 'preview',
+            naturalLanguageInput: c.naturalLanguageInput
+        }).then(function(response) {
+            c.isLoading = false;
+            if (response.data.success) {
+                c.showPreview = true;
+                c.parsedConfig = response.data.parsedConfig;
+            } else {
+                c.error = response.data.message || 'Failed to parse input';
+                spUtil.addErrorMessage(c.error);
+            }
+        }, function(error) {
+            c.isLoading = false;
+            c.error = 'Server error: ' + (error.message || 'Unknown error');
+            spUtil.addErrorMessage(c.error);
+        });
+    };
+
+    /**
+     * Generate the catalog item
+     */
+    c.generateCatalogItem = function() {
+        if (!c.naturalLanguageInput || c.naturalLanguageInput.trim() === '') {
+            spUtil.addErrorMessage('Please enter a natural language description');
+            return;
+        }
+
+        c.isLoading = true;
+        c.showResults = false;
+        c.showPreview = false;
+        c.error = null;
+
+        c.server.get({
+            action: 'generate',
+            naturalLanguageInput: c.naturalLanguageInput
+        }).then(function(response) {
+            c.isLoading = false;
+            if (response.data.success) {
+                c.showResults = true;
+                c.createdItem = response.data.createdItem;
+                c.createdVariables = response.data.createdVariables;
+                c.successMessage = response.data.message;
+                spUtil.addInfoMessage(response.data.message);
+            } else {
+                c.error = response.data.message || 'Failed to create catalog item';
+                spUtil.addErrorMessage(c.error);
+            }
+        }, function(error) {
+            c.isLoading = false;
+            c.error = 'Server error: ' + (error.message || 'Unknown error');
+            spUtil.addErrorMessage(c.error);
+        });
+    };
+
+    /**
+     * Use a sample prompt
+     */
+    c.useSamplePrompt = function(prompt) {
+        c.naturalLanguageInput = prompt;
+        c.showResults = false;
+        c.showPreview = false;
+        c.error = null;
+    };
+
+    /**
+     * Clear the form
+     */
+    c.clearForm = function() {
+        c.naturalLanguageInput = '';
+        c.showResults = false;
+        c.showPreview = false;
+        c.error = null;
+        c.createdItem = null;
+        c.createdVariables = [];
+        c.parsedConfig = null;
+    };
+
+    /**
+     * Navigate to created catalog item
+     */
+    c.viewCatalogItem = function() {
+        if (c.createdItem && c.createdItem.sys_id) {
+            window.open('/sc_cat_item.do?sys_id=' + c.createdItem.sys_id, '_blank');
+        }
+    };
+
+    /**
+     * Get variable type display name
+     */
+    c.getVariableTypeName = function(type) {
+        var typeNames = {
+            'text': 'Single Line Text',
+            'textarea': 'Multi Line Text',
+            'dropdown': 'Dropdown/Select',
+            'checkbox': 'Checkbox',
+            'date': 'Date',
+            'datetime': 'Date/Time',
+            'reference': 'Reference',
+            'yesno': 'Yes/No'
+        };
+        return typeNames[type] || type;
+    };
+
+    /**
+     * Get variable type icon
+     */
+    c.getVariableTypeIcon = function(type) {
+        var typeIcons = {
+            'text': 'fa-font',
+            'textarea': 'fa-align-left',
+            'dropdown': 'fa-caret-square-o-down',
+            'checkbox': 'fa-check-square-o',
+            'date': 'fa-calendar',
+            'datetime': 'fa-clock-o',
+            'reference': 'fa-link',
+            'yesno': 'fa-toggle-on'
+        };
+        return typeIcons[type] || 'fa-question';
+    };
+
+};

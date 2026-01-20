@@ -1,0 +1,369 @@
+(function() {
+    /* 
+     * Catalog Item Generator - Server Script
+     * POC for generating catalog items from natural language
+     */
+
+    // Initialize data object
+    data.message = '';
+    data.success = false;
+    data.createdItem = null;
+    data.createdVariables = [];
+    data.previewMode = false;
+
+    // Handle client requests
+    if (input) {
+        if (input.action === 'generate') {
+            var result = generateCatalogItem(input.naturalLanguageInput);
+            data.success = result.success;
+            data.message = result.message;
+            data.createdItem = result.createdItem;
+            data.createdVariables = result.createdVariables;
+        } else if (input.action === 'preview') {
+            var config = parseNaturalLanguage(input.naturalLanguageInput);
+            data.previewMode = true;
+            data.parsedConfig = config;
+            data.success = true;
+        }
+    }
+
+    /**
+     * Main function to generate catalog item from natural language
+     * @param {string} nlInput - Natural language input from user
+     * @returns {object} Result object with success status and details
+     */
+    function generateCatalogItem(nlInput) {
+        var result = {
+            success: false,
+            message: '',
+            createdItem: null,
+            createdVariables: []
+        };
+
+        try {
+            // Step 1: Parse the natural language input
+            var config = parseNaturalLanguage(nlInput);
+
+            if (!config.isValid) {
+                result.message = 'Could not parse input. Please try: "Create catalog item with X variables and Y mandatory"';
+                return result;
+            }
+
+            // Step 2: Create the catalog item
+            var itemSysId = createCatalogItemRecord(config);
+
+            if (!itemSysId) {
+                result.message = 'Failed to create catalog item record';
+                return result;
+            }
+
+            result.createdItem = {
+                sys_id: itemSysId,
+                name: config.itemName,
+                category: config.category
+            };
+
+            // Step 3: Create the variables
+            var variables = createVariableRecords(itemSysId, config);
+            result.createdVariables = variables;
+
+            // Step 4: Success
+            result.success = true;
+            result.message = 'Successfully created catalog item "' + config.itemName + 
+                '" with ' + config.totalVariables + ' variables (' + 
+                config.mandatoryCount + ' mandatory)';
+
+        } catch (e) {
+            result.message = 'Error: ' + e.message;
+            gs.error('Catalog Item Generator Error: ' + e.message);
+        }
+
+        return result;
+    }
+
+    /**
+     * Parse natural language input to extract configuration
+     * @param {string} input - Natural language statement
+     * @returns {object} Configuration object
+     */
+    function parseNaturalLanguage(input) {
+        var config = {
+            isValid: false,
+            itemName: 'Generated Catalog Item',
+            description: 'Auto-generated catalog item',
+            totalVariables: 0,
+            mandatoryCount: 0,
+            variableTypes: [],
+            category: '',
+            catalogName: 'Service Catalog'
+        };
+
+        if (!input || input.trim() === '') {
+            return config;
+        }
+
+        var lowerInput = input.toLowerCase();
+
+        // Extract item name
+        // Pattern: named "Something" or name "Something" or called "Something"
+        var namePatterns = [
+            /(?:named?|called)\s+["']([^"']+)["']/i,
+            /(?:named?|called)\s+(\w+(?:\s+\w+)*?)(?:\s+with|\s+in|\s+having|$)/i,
+            /catalog\s+item\s+["']([^"']+)["']/i
+        ];
+
+        for (var i = 0; i < namePatterns.length; i++) {
+            var nameMatch = input.match(namePatterns[i]);
+            if (nameMatch && nameMatch[1]) {
+                config.itemName = nameMatch[1].trim();
+                break;
+            }
+        }
+
+        // Extract total variable count
+        // Patterns: "5 variables", "with 5 fields", "having 5 inputs"
+        var varPatterns = [
+            /(\d+)\s*(?:variables?|fields?|inputs?)/i,
+            /with\s+(\d+)/i
+        ];
+
+        for (var j = 0; j < varPatterns.length; j++) {
+            var varMatch = lowerInput.match(varPatterns[j]);
+            if (varMatch && varMatch[1]) {
+                config.totalVariables = parseInt(varMatch[1], 10);
+                break;
+            }
+        }
+
+        // Extract mandatory count
+        // Patterns: "2 mandatory", "2 required", "first 2 mandatory", "2 are mandatory"
+        var mandatoryPatterns = [
+            /(\d+)\s*(?:mandatory|required)/i,
+            /first\s+(\d+)\s*(?:mandatory|required|are\s+mandatory|are\s+required)/i,
+            /(\d+)\s+(?:are|as)\s+(?:mandatory|required)/i
+        ];
+
+        for (var k = 0; k < mandatoryPatterns.length; k++) {
+            var mandMatch = lowerInput.match(mandatoryPatterns[k]);
+            if (mandMatch && mandMatch[1]) {
+                config.mandatoryCount = parseInt(mandMatch[1], 10);
+                break;
+            }
+        }
+
+        // Extract category
+        // Pattern: "in category Hardware" or "category: Hardware"
+        var categoryMatch = input.match(/(?:in\s+)?category\s*[:\s]+["']?([^"',]+)["']?/i);
+        if (categoryMatch && categoryMatch[1]) {
+            config.category = categoryMatch[1].trim();
+        }
+
+        // Extract specific variable types
+        // Count occurrences of each type
+        var typePatterns = {
+            'text': /(\d+)\s*(?:text|string)\s*(?:fields?|variables?|inputs?)?/gi,
+            'dropdown': /(\d+)\s*(?:dropdown|select|choice)\s*(?:fields?|variables?)?/gi,
+            'checkbox': /(\d+)\s*(?:checkbox|boolean)\s*(?:fields?|variables?)?/gi,
+            'date': /(\d+)\s*(?:date)\s*(?:fields?|variables?)?/gi,
+            'datetime': /(\d+)\s*(?:datetime|date.?time)\s*(?:fields?|variables?)?/gi,
+            'reference': /(\d+)\s*(?:reference|lookup)\s*(?:fields?|variables?)?/gi,
+            'textarea': /(\d+)\s*(?:textarea|multi.?line|multiline)\s*(?:fields?|variables?)?/gi
+        };
+
+        var specifiedCount = 0;
+        for (var type in typePatterns) {
+            var typeMatch = lowerInput.match(typePatterns[type]);
+            if (typeMatch) {
+                for (var m = 0; m < typeMatch.length; m++) {
+                    var countMatch = typeMatch[m].match(/(\d+)/);
+                    if (countMatch) {
+                        var count = parseInt(countMatch[1], 10);
+                        for (var n = 0; n < count; n++) {
+                            config.variableTypes.push(type);
+                        }
+                        specifiedCount += count;
+                    }
+                }
+            }
+        }
+
+        // If total variables specified but types not fully specified, fill with text
+        if (config.totalVariables > specifiedCount) {
+            var remaining = config.totalVariables - specifiedCount;
+            for (var p = 0; p < remaining; p++) {
+                config.variableTypes.push('text');
+            }
+        }
+
+        // If no total specified, use the sum of typed variables
+        if (config.totalVariables === 0 && config.variableTypes.length > 0) {
+            config.totalVariables = config.variableTypes.length;
+        }
+
+        // Ensure mandatory count doesn't exceed total
+        if (config.mandatoryCount > config.totalVariables) {
+            config.mandatoryCount = config.totalVariables;
+        }
+
+        // Validate we have enough info
+        config.isValid = config.totalVariables > 0;
+
+        // Generate unique name with timestamp if using default
+        if (config.itemName === 'Generated Catalog Item') {
+            var now = new GlideDateTime();
+            config.itemName = 'Generated Catalog Item - ' + now.getDisplayValue();
+        }
+
+        return config;
+    }
+
+    /**
+     * Create the catalog item record
+     * @param {object} config - Parsed configuration
+     * @returns {string} sys_id of created catalog item
+     */
+    function createCatalogItemRecord(config) {
+        var catItem = new GlideRecord('sc_cat_item');
+        catItem.initialize();
+
+        catItem.name = config.itemName;
+        catItem.short_description = config.description;
+        catItem.description = 'This catalog item was auto-generated from natural language input. ' +
+            'Total variables: ' + config.totalVariables + ', Mandatory: ' + config.mandatoryCount;
+        catItem.active = true;
+
+        // Set category if specified
+        if (config.category) {
+            var categoryGr = new GlideRecord('sc_category');
+            categoryGr.addQuery('title', 'CONTAINS', config.category);
+            categoryGr.setLimit(1);
+            categoryGr.query();
+            if (categoryGr.next()) {
+                catItem.category = categoryGr.sys_id;
+            }
+        }
+
+        // Set catalog
+        var catalogGr = new GlideRecord('sc_catalog');
+        catalogGr.addQuery('title', config.catalogName);
+        catalogGr.setLimit(1);
+        catalogGr.query();
+        if (catalogGr.next()) {
+            catItem.sc_catalogs = catalogGr.sys_id;
+        }
+
+        var itemSysId = catItem.insert();
+        return itemSysId;
+    }
+
+    /**
+     * Create variable records for the catalog item
+     * @param {string} itemSysId - sys_id of the catalog item
+     * @param {object} config - Parsed configuration
+     * @returns {array} Array of created variable info
+     */
+    function createVariableRecords(itemSysId, config) {
+        var createdVariables = [];
+
+        // Variable type mapping to ServiceNow type codes
+        var typeMapping = {
+            'text': 6,         // Single Line Text
+            'textarea': 2,     // Multi Line Text
+            'dropdown': 5,     // Select Box
+            'checkbox': 7,     // Checkbox
+            'date': 9,         // Date
+            'datetime': 10,    // Date/Time
+            'reference': 8,    // Reference
+            'yesno': 1         // Yes/No
+        };
+
+        for (var i = 0; i < config.totalVariables; i++) {
+            var varType = config.variableTypes[i] || 'text';
+            var variableName = 'variable_' + (i + 1);
+            var questionText = 'Variable ' + (i + 1);
+            var isMandatory = (i < config.mandatoryCount);
+
+            var variable = new GlideRecord('item_option_new');
+            variable.initialize();
+
+            variable.name = variableName;
+            variable.cat_item = itemSysId;
+            variable.question_text = questionText;
+            variable.type = typeMapping[varType] || 6;
+            variable.mandatory = isMandatory;
+            variable.order = (i + 1) * 100;
+            variable.active = true;
+
+            // For dropdown type, create some default choices
+            if (varType === 'dropdown') {
+                variable.question_text = questionText + ' (Select)';
+            }
+
+            // For reference type, default to sys_user table
+            if (varType === 'reference') {
+                variable.reference = 'sys_user';
+                variable.question_text = questionText + ' (User Reference)';
+            }
+
+            var varSysId = variable.insert();
+
+            // If dropdown, create some default choices
+            if (varType === 'dropdown' && varSysId) {
+                createDefaultChoices(varSysId);
+            }
+
+            createdVariables.push({
+                sys_id: varSysId,
+                name: variableName,
+                type: varType,
+                mandatory: isMandatory,
+                order: (i + 1) * 100
+            });
+        }
+
+        return createdVariables;
+    }
+
+    /**
+     * Create default choices for a dropdown variable
+     * @param {string} variableSysId - sys_id of the variable
+     */
+    function createDefaultChoices(variableSysId) {
+        var defaultChoices = ['Option 1', 'Option 2', 'Option 3'];
+
+        for (var i = 0; i < defaultChoices.length; i++) {
+            var choice = new GlideRecord('question_choice');
+            choice.initialize();
+            choice.question = variableSysId;
+            choice.text = defaultChoices[i];
+            choice.value = 'option_' + (i + 1);
+            choice.order = (i + 1) * 100;
+            choice.insert();
+        }
+    }
+
+    /**
+     * Get list of available categories for reference
+     * @returns {array} List of category names
+     */
+    function getCategories() {
+        var categories = [];
+        var catGr = new GlideRecord('sc_category');
+        catGr.addActiveQuery();
+        catGr.orderBy('title');
+        catGr.query();
+
+        while (catGr.next()) {
+            categories.push({
+                sys_id: catGr.sys_id.toString(),
+                title: catGr.title.toString()
+            });
+        }
+
+        return categories;
+    }
+
+    // Expose categories for the UI
+    data.categories = getCategories();
+
+})();

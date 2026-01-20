@@ -1,0 +1,196 @@
+<div class="catalog-generator-widget">
+    <!-- Header Section -->
+    <div class="generator-header">
+        <h2><i class="fa fa-magic"></i> Catalog Item Generator</h2>
+        <p class="subtitle">Create catalog items using natural language</p>
+    </div>
+
+    <!-- Main Input Section -->
+    <div class="generator-body">
+        <div class="input-section">
+            <label for="nlInput" class="input-label">
+                <i class="fa fa-comment-o"></i> Describe your catalog item
+            </label>
+            <textarea 
+                id="nlInput"
+                class="form-control nl-input" 
+                ng-model="c.naturalLanguageInput" 
+                placeholder="Example: Create a catalog item with 5 variables and 2 mandatory"
+                rows="4"
+                ng-disabled="c.isLoading">
+            </textarea>
+            
+            <!-- Action Buttons -->
+            <div class="action-buttons">
+                <button 
+                    class="btn btn-secondary" 
+                    ng-click="c.previewCatalogItem()" 
+                    ng-disabled="c.isLoading || !c.naturalLanguageInput">
+                    <i class="fa fa-eye"></i> Preview
+                </button>
+                <button 
+                    class="btn btn-primary" 
+                    ng-click="c.generateCatalogItem()" 
+                    ng-disabled="c.isLoading || !c.naturalLanguageInput">
+                    <i class="fa fa-plus-circle"></i> Generate Catalog Item
+                </button>
+                <button 
+                    class="btn btn-light" 
+                    ng-click="c.clearForm()" 
+                    ng-disabled="c.isLoading">
+                    <i class="fa fa-refresh"></i> Clear
+                </button>
+            </div>
+        </div>
+
+        <!-- Loading Spinner -->
+        <div class="loading-section" ng-if="c.isLoading">
+            <div class="spinner">
+                <i class="fa fa-spinner fa-spin fa-3x"></i>
+            </div>
+            <p>Processing your request...</p>
+        </div>
+
+        <!-- Error Message -->
+        <div class="error-section" ng-if="c.error">
+            <div class="alert alert-danger">
+                <i class="fa fa-exclamation-triangle"></i> {{c.error}}
+            </div>
+        </div>
+
+        <!-- Preview Section -->
+        <div class="preview-section" ng-if="c.showPreview && c.parsedConfig">
+            <h4><i class="fa fa-search"></i> Preview - Parsed Configuration</h4>
+            <div class="preview-card">
+                <div class="preview-row">
+                    <span class="preview-label">Catalog Item Name:</span>
+                    <span class="preview-value">{{c.parsedConfig.itemName}}</span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">Total Variables:</span>
+                    <span class="preview-value">{{c.parsedConfig.totalVariables}}</span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">Mandatory Variables:</span>
+                    <span class="preview-value">{{c.parsedConfig.mandatoryCount}}</span>
+                </div>
+                <div class="preview-row" ng-if="c.parsedConfig.category">
+                    <span class="preview-label">Category:</span>
+                    <span class="preview-value">{{c.parsedConfig.category}}</span>
+                </div>
+                <div class="preview-row">
+                    <span class="preview-label">Variable Types:</span>
+                    <div class="variable-types-preview">
+                        <span class="type-badge" ng-repeat="type in c.parsedConfig.variableTypes track by $index">
+                            <i class="fa" ng-class="c.getVariableTypeIcon(type)"></i>
+                            {{c.getVariableTypeName(type)}}
+                            <span class="mandatory-indicator" ng-if="$index < c.parsedConfig.mandatoryCount">*</span>
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <p class="preview-note">
+                <i class="fa fa-info-circle"></i> 
+                Click "Generate Catalog Item" to create this configuration
+            </p>
+        </div>
+
+        <!-- Success Results Section -->
+        <div class="results-section" ng-if="c.showResults">
+            <div class="success-banner">
+                <i class="fa fa-check-circle fa-2x"></i>
+                <h4>Catalog Item Created Successfully!</h4>
+                <p>{{c.successMessage}}</p>
+            </div>
+
+            <!-- Created Item Details -->
+            <div class="created-item-card">
+                <h5><i class="fa fa-list-alt"></i> Created Catalog Item</h5>
+                <div class="item-details">
+                    <div class="detail-row">
+                        <span class="detail-label">Name:</span>
+                        <span class="detail-value">{{c.createdItem.name}}</span>
+                    </div>
+                    <div class="detail-row">
+                        <span class="detail-label">Sys ID:</span>
+                        <span class="detail-value code">{{c.createdItem.sys_id}}</span>
+                    </div>
+                </div>
+                <button class="btn btn-info btn-sm" ng-click="c.viewCatalogItem()">
+                    <i class="fa fa-external-link"></i> Open Catalog Item
+                </button>
+            </div>
+
+            <!-- Created Variables Table -->
+            <div class="variables-card" ng-if="c.createdVariables.length > 0">
+                <h5><i class="fa fa-th-list"></i> Created Variables</h5>
+                <table class="table table-striped variables-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Name</th>
+                            <th>Type</th>
+                            <th>Mandatory</th>
+                            <th>Order</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr ng-repeat="variable in c.createdVariables">
+                            <td>{{$index + 1}}</td>
+                            <td>{{variable.name}}</td>
+                            <td>
+                                <i class="fa" ng-class="c.getVariableTypeIcon(variable.type)"></i>
+                                {{c.getVariableTypeName(variable.type)}}
+                            </td>
+                            <td>
+                                <span class="badge" ng-class="variable.mandatory ? 'badge-danger' : 'badge-secondary'">
+                                    {{variable.mandatory ? 'Yes' : 'No'}}
+                                </span>
+                            </td>
+                            <td>{{variable.order}}</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sample Prompts Section -->
+        <div class="samples-section">
+            <h5><i class="fa fa-lightbulb-o"></i> Sample Prompts</h5>
+            <p class="samples-description">Click any sample to try it:</p>
+            <div class="sample-prompts">
+                <div class="sample-prompt" ng-repeat="prompt in c.samplePrompts" ng-click="c.useSamplePrompt(prompt)">
+                    <i class="fa fa-quote-left"></i>
+                    {{prompt}}
+                </div>
+            </div>
+        </div>
+
+        <!-- Help Section -->
+        <div class="help-section">
+            <h5><i class="fa fa-question-circle"></i> How to Use</h5>
+            <div class="help-content">
+                <div class="help-item">
+                    <strong>Basic Syntax:</strong>
+                    <code>Create a catalog item with [X] variables and [Y] mandatory</code>
+                </div>
+                <div class="help-item">
+                    <strong>Named Item:</strong>
+                    <code>Create catalog item named "My Item" with 5 variables</code>
+                </div>
+                <div class="help-item">
+                    <strong>Specific Types:</strong>
+                    <code>Create item with 2 text fields, 1 dropdown, 1 date field</code>
+                </div>
+                <div class="help-item">
+                    <strong>With Category:</strong>
+                    <code>Create item in category Hardware with 3 variables</code>
+                </div>
+                <div class="help-item">
+                    <strong>Supported Types:</strong>
+                    text, dropdown, checkbox, date, datetime, reference, textarea
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
