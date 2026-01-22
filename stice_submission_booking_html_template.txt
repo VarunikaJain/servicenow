@@ -49,12 +49,12 @@
         <div class="time-slot-container" ng-repeat="hour in timeSlots" ng-class="{'booked-container': hasBookingInHour(stice.sys_id, hour)}">
           
           <div class="sub-slot"
-               ng-class="getSlotClass(stice.sys_id, hour, 0)"
+               ng-class="[getSlotClass(stice.sys_id, hour, 0), {'booking-start': getBookingForSlot(stice.sys_id, hour, 0) && isBookingStart(getBookingForSlot(stice.sys_id, hour, 0), stice.sys_id, hour, 0)}]"
                ng-click="handleSlotClick(stice.sys_id, hour, 0)">
           </div>
  
           <div class="sub-slot"
-               ng-class="getSlotClass(stice.sys_id, hour, 30)"
+               ng-class="[getSlotClass(stice.sys_id, hour, 30), {'booking-start': getBookingForSlot(stice.sys_id, hour, 30) && isBookingStart(getBookingForSlot(stice.sys_id, hour, 30), stice.sys_id, hour, 30)}]"
                ng-click="handleSlotClick(stice.sys_id, hour, 30)">
           </div>
  

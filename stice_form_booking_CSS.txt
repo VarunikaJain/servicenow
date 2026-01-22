@@ -216,8 +216,8 @@
   box-shadow: none !important;
 }
 
-/* Calendar icon for ALL booked slots */
-.sub-slot.booked::before {
+/* Calendar icon - only at the START of each booking */
+.sub-slot.booked.booking-start::before {
   content: '';
   display: inline-block;
   width: 14px;
