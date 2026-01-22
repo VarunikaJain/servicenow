@@ -216,8 +216,8 @@
   box-shadow: none !important;
 }
 
-/* Calendar icon - one per booking, centered in the slot */
-.sub-slot.booked.booking-start::before {
+/* Calendar icon - one per booking, at the center slot */
+.sub-slot.booked.booking-center::before {
   content: '\f073';
   font-family: FontAwesome;
   font-size: 12px;
