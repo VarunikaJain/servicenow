@@ -146,6 +146,23 @@ api.controller = function($scope, spUtil, $filter, spModal, $uibModal, $timeout)
         return slotEnd.getTime() === bookingEndTime.getTime();
     };
 
+    // Check if this slot is the CENTER of the booking (for calendar icon)
+    $scope.isBookingCenter = function(booking, sticeId, hour, minute) {
+        const hourNum = hour.substring(0, 2);
+        const slotTime = hourNum + ':' + minute.toString().padStart(2, '0');
+        const slotStart = new Date($scope.selectedDate.toDateString() + ' ' + slotTime);
+        const slotEnd = new Date(slotStart.getTime() + (30 * 60 * 1000));
+        
+        const bookingStartTime = new Date(booking.start_date_time);
+        const bookingEndTime = new Date(booking.end_date_time);
+        
+        // Calculate the middle time of the booking
+        const bookingMiddleTime = new Date(bookingStartTime.getTime() + (bookingEndTime.getTime() - bookingStartTime.getTime()) / 2);
+        
+        // Check if the middle time falls within this slot
+        return bookingMiddleTime >= slotStart && bookingMiddleTime < slotEnd;
+    };
+
     $scope.getSlotClass = function(sticeId, hour, minute) {
         var booking = $scope.getBookingForSlot(sticeId, hour, minute);
         return booking ? "booked" : "available";
