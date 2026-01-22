@@ -216,8 +216,8 @@
   box-shadow: none !important;
 }
 
-/* Calendar icon - at the CENTER of each booking */
-.sub-slot.booked.booking-center::before {
+/* Calendar icon - one per booking, centered in the slot */
+.sub-slot.booked.booking-start::before {
   content: '';
   display: inline-block;
   width: 14px;
