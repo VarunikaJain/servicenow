@@ -235,13 +235,13 @@
   flex-shrink: 0;
 }
 
-/* Ensure booking-info text and calendar icon are properly aligned */
+/* Center the calendar icon in the booking start slot */
 .sub-slot.booked.booking-start {
-  justify-content: flex-start;
-  padding-left: 4px;
+  justify-content: center;
+  padding-left: 0;
 }
 
-/* Hide booking-info text when calendar icon is present (optional - remove if you want both) */
+/* Hide the booking name text - only show calendar icon */
 .sub-slot.booked.booking-start .booking-info {
-  display: inline-block;
+  display: none;
 }
