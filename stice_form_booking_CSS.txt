@@ -203,8 +203,8 @@
 }
 
 .booking-calendar-widget .calendar-grid .sub-slot.booked {
-  background-color: #d9d9d9 !important;
-  border-color: #d9d9d9 !important;
+  background-color: #c8d1dc !important;
+  border-color: #c8d1dc !important;
   outline: none !important;
   box-shadow: none !important;
   background-image: none !important;
@@ -212,7 +212,7 @@
 
 /* If the hour container itself has borders, hide them when that hour has any booking. */
 .booking-calendar-widget .calendar-grid .time-slot-container.booked-container {
-  border-color: #d9d9d9 !important;
+  border-color: #c8d1dc !important;
   box-shadow: none !important;
 }
 
