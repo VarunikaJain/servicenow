@@ -148,9 +148,16 @@ api.controller = function($scope, spUtil, $filter, spModal, $uibModal, $timeout)
 
     // Check if this slot is the CENTER of the booking (for calendar icon)
     $scope.isBookingCenter = function(booking, sticeId, hour, minute) {
-        var hourNum = hour.substring(0, 2);
-        var slotTime = hourNum + ':' + minute.toString().padStart(2, '0');
-        var slotStart = new Date($scope.selectedDate.toDateString() + ' ' + slotTime);
+        if (!booking || !booking.start_date_time || !booking.end_date_time) {
+            return false;
+        }
+
+        var hourNum = parseInt(hour.substring(0, 2), 10);
+        
+        // Create slot times using setHours (more reliable)
+        var slotStart = new Date($scope.selectedDate);
+        slotStart.setHours(hourNum, minute, 0, 0);
+        
         var slotEnd = new Date(slotStart.getTime() + (30 * 60 * 1000));
         
         var bookingStartTime = new Date(booking.start_date_time);
@@ -160,7 +167,18 @@ api.controller = function($scope, spUtil, $filter, spModal, $uibModal, $timeout)
         var bookingMiddleTime = new Date(bookingStartTime.getTime() + (bookingEndTime.getTime() - bookingStartTime.getTime()) / 2);
         
         // Check if the middle time falls within this slot
-        return bookingMiddleTime >= slotStart && bookingMiddleTime < slotEnd;
+        return bookingMiddleTime.getTime() >= slotStart.getTime() && bookingMiddleTime.getTime() < slotEnd.getTime();
+    };
+
+    // Check if booking is only 30 minutes (single slot)
+    $scope.isSingleSlotBooking = function(booking) {
+        if (!booking || !booking.start_date_time || !booking.end_date_time) {
+            return false;
+        }
+        var start = new Date(booking.start_date_time);
+        var end = new Date(booking.end_date_time);
+        var durationMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+        return durationMinutes <= 30;
     };
 
     $scope.getSlotClass = function(sticeId, hour, minute) {

@@ -216,12 +216,26 @@
   box-shadow: none !important;
 }
 
-/* Calendar icon - one per booking, at the center slot */
+/* Calendar icon - base positioning for multi-slot bookings */
+.sub-slot.booked.booking-center {
+  position: relative;
+}
+
 .sub-slot.booked.booking-center::before {
   content: '\f073';
   font-family: FontAwesome;
   font-size: 12px;
   color: #555555;
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translate(-50%, -50%);
+}
+
+/* For single-slot (30 min) bookings - center the icon in the slot */
+.sub-slot.booked.booking-center.single-slot::before {
+  position: static;
+  transform: none;
 }
 
 /* Hide the booking name text */
