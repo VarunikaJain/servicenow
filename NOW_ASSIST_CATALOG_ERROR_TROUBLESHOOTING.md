@@ -10,107 +10,195 @@ Syntax error or access violation detected by database table 'stdev_1.sys_ai_reco
 
 ## Root Cause
 
-This error occurs because the `sys_ai_record_activity` table (part of Now Assist/Generative AI infrastructure) does not exist or is not accessible in your ServiceNow instance. This is typically a **platform configuration issue**, not a code issue with your catalog item or widgets.
+**This is a Table Rotation/Partition issue.** 
+
+The base table `sys_ai_record_activity` exists, but the error references `sys_ai_record_activity0000` (note the `0000` suffix). In ServiceNow, tables with numeric suffixes are **rotated table partitions**. 
+
+The Now Assist feature is trying to write to a specific partition (`0000`) that doesn't exist in your database, even though the base table configuration exists.
 
 ## Common Causes
 
-1. **Now Assist Plugin Not Installed** - The Generative AI Controller or Now Assist plugins are not installed
-2. **Missing AI Tables** - The AI-related system tables haven't been created
-3. **Instance Configuration** - Now Assist features are enabled but the underlying infrastructure isn't set up
-4. **Sub-Production Instance Issues** - Cloned instances may have AI features enabled without the required tables
-5. **License/Entitlement Issues** - Now Assist requires specific licensing
+1. **Table Rotation Misconfiguration** - Table rotation is enabled but partitions weren't created
+2. **Clone/Refresh Issues** - Table rotation config was cloned but physical partitions weren't
+3. **Failed Table Extension** - The rotation job failed to create the partition tables
+4. **Database Schema Mismatch** - The dictionary says partitions exist but they don't in the actual database
 
 ## Resolution Steps
 
-### Step 1: Verify Now Assist Plugin Installation
-
-1. Navigate to **System Definition > Plugins** (`sys_plugins.list`)
-2. Search for the following plugins and verify they are installed and active:
-   - `com.snc.generative_ai_controller` - Generative AI Controller
-   - `com.snc.now_assist_common` - Now Assist Common
-   - `com.snc.now_assist_catalog` - Now Assist for Service Catalog (if available)
-
-If these plugins are not installed, you need to install them through the ServiceNow Store or request activation from ServiceNow.
-
-### Step 2: Check AI System Tables
+### Step 1: Check Table Rotation Configuration (MOST LIKELY FIX)
 
 1. Navigate to **System Definition > Tables** (`sys_db_object.list`)
 2. Search for `sys_ai_record_activity`
-3. If the table doesn't exist, the Now Assist plugins need to be properly installed
+3. Open the table record
+4. Check the **Extension model** field - if it shows "Table per partition" or similar rotation config
+5. Look for the **Table Rotation** or **Rotation Schedule** related list
 
-### Step 3: Disable Now Assist for Catalog Items (Temporary Workaround)
+**To fix the rotation issue:**
 
-If you don't have Now Assist licensing or need a quick fix:
+1. Navigate to **System Definition > Table Rotation > Rotation Schedules** (`table_rotation_schedule.list`)
+2. Search for schedules related to `sys_ai_record_activity`
+3. If a schedule exists, try running it manually or check if it's active
 
-1. Navigate to **Service Catalog > Catalog Definitions > Maintain Items**
-2. Open your catalog item
-3. Look for any Now Assist or AI-related settings and disable them
-4. Alternatively, check **System Properties** for AI-related properties:
-   - Navigate to `sys_properties.list`
-   - Search for properties containing `ai` or `now_assist`
-   - Set `glide.ai.enabled` to `false` if you want to disable AI features instance-wide
+### Step 2: Create Missing Partition Table (Recommended Fix)
 
-### Step 4: Check System Properties
-
-Review and adjust these properties as needed:
-
-| Property Name | Description | Recommended Action |
-|--------------|-------------|-------------------|
-| `glide.ai.enabled` | Master switch for AI features | Set to `false` to disable |
-| `sn_gen_ai.enable_catalog_assist` | Now Assist for Catalog | Set to `false` if not licensed |
-| `sn_gen_ai.enabled` | Generative AI features | Set to `false` if not licensed |
-
-### Step 5: For Sub-Production/Clone Instances
-
-If this is a cloned instance:
-
-1. AI configurations may have been copied from production
-2. Navigate to **System Clone > Exclude Tables** and ensure AI tables are excluded from future clones
-3. Run the following script in **Scripts - Background** to check AI configuration:
+Run this script in **Scripts - Background** to check and potentially fix the partition:
 
 ```javascript
-// Check AI-related system properties
-var gr = new GlideRecord('sys_properties');
-gr.addQuery('name', 'CONTAINS', 'ai');
-gr.query();
-while (gr.next()) {
-    gs.info(gr.name + ' = ' + gr.value);
+// Check if the partition table exists
+var tableExists = GlideTableDescriptor.isValid('sys_ai_record_activity0000');
+gs.info('Partition table sys_ai_record_activity0000 exists: ' + tableExists);
+
+// Check rotation configuration
+var rotGr = new GlideRecord('sys_table_rotation');
+rotGr.addQuery('name', 'sys_ai_record_activity');
+rotGr.query();
+if (rotGr.next()) {
+    gs.info('Table rotation config found: ' + rotGr.getDisplayValue());
+    gs.info('Extension model: ' + rotGr.extension_model);
+} else {
+    gs.info('No table rotation configuration found for sys_ai_record_activity');
 }
 ```
 
-### Step 6: Contact ServiceNow Support
+### Step 3: Disable Table Rotation (Quick Fix)
+
+If you don't need table rotation for this AI table:
+
+1. Navigate to **System Definition > Tables** (`sys_db_object.list`)
+2. Find `sys_ai_record_activity`
+3. Open the record and look for **Extension model** or rotation settings
+4. Change to "Table per hierarchy" or disable rotation
+5. **Note:** This may require admin privileges and could affect AI logging
+
+### Step 4: Manually Create the Partition Table
+
+If the partition is missing, you can request ServiceNow to create it:
+
+1. Open a **HI case** with ServiceNow Support
+2. Explain that the `sys_ai_record_activity0000` partition table is missing
+3. Request they run the table rotation extension to create the missing partition
+
+Or, if you have appropriate access, run in **Scripts - Background**:
+
+```javascript
+// Attempt to trigger table rotation for AI activity table
+// WARNING: Test in sub-prod first
+var rotator = new TableRotationUtils();
+if (rotator.rotateTable) {
+    rotator.rotateTable('sys_ai_record_activity');
+    gs.info('Table rotation triggered');
+}
+```
+
+### Step 5: Disable Now Assist Temporarily (Workaround)
+
+If you need the catalog item to work immediately while fixing the root cause:
+
+1. Navigate to **System Properties** (`sys_properties.list`)
+2. Search for and set these properties to `false`:
+   - `glide.ai.enabled`
+   - `sn_gen_ai.enable_catalog_assist`
+   - `sn_gen_ai.enabled`
+
+Or disable at the catalog item level:
+1. Navigate to **Service Catalog > Catalog Definitions > Maintain Items**
+2. Open your catalog item
+3. Look for Now Assist / AI-related checkboxes and disable them
+
+### Step 6: Check for Clone/Refresh Issues
+
+If this is a refreshed or cloned instance:
+
+1. Table rotation configurations get cloned but physical partition tables may not
+2. Navigate to **System Clone > Clone History** to check recent clones
+3. The partition tables may need to be recreated after clone
+
+Run this diagnostic script:
+
+```javascript
+// Check all AI-related tables and their rotation status
+var tables = ['sys_ai_record_activity', 'sys_ai_log', 'sys_ai_config'];
+tables.forEach(function(tableName) {
+    var exists = GlideTableDescriptor.isValid(tableName);
+    var partition0 = GlideTableDescriptor.isValid(tableName + '0000');
+    gs.info(tableName + ' - Base: ' + exists + ', Partition 0000: ' + partition0);
+});
+```
+
+### Step 7: Contact ServiceNow Support
 
 If the above steps don't resolve the issue:
 
-1. Open a case with ServiceNow Support
-2. Provide the exact error message
-3. Include your instance version and installed plugins
-4. Mention if this is a production or sub-production instance
+1. Open a case with ServiceNow Support (HI portal)
+2. Provide the exact error message including the table name with suffix
+3. Mention that the base table exists but partition `0000` is missing
+4. Include your instance version and when the issue started
+5. Note if this started after a clone, upgrade, or plugin installation
 
 ## Prevention
 
 To prevent this issue in the future:
 
-1. Ensure Now Assist licensing is in place before enabling AI features
-2. When cloning instances, exclude AI configuration tables
-3. Test AI features in sub-production before enabling in production
-4. Keep plugins updated to the latest versions
+1. After cloning instances, verify table rotation partitions exist
+2. Monitor table rotation scheduled jobs for failures
+3. Before enabling Now Assist, ensure all required tables and partitions are created
+4. Include table rotation validation in your clone cleanup scripts
+
+## Understanding Table Rotation in ServiceNow
+
+ServiceNow uses **table rotation** for high-volume tables to improve performance:
+
+- Base table: `sys_ai_record_activity` (contains metadata/configuration)
+- Partition tables: `sys_ai_record_activity0000`, `sys_ai_record_activity0001`, etc. (contain actual data)
+- When rotation is enabled, data writes go to partition tables, not the base table
+- If the partition doesn't exist, you get the "table does not exist" error
 
 ## Related Tables
 
-The following tables are part of Now Assist infrastructure:
+The following tables are part of Now Assist infrastructure and may have rotation:
 
-- `sys_ai_record_activity` - AI Record Activity tracking
-- `sys_ai_config` - AI Configuration
-- `sys_ai_model` - AI Models
-- `sn_gen_ai_*` - Generative AI tables
+| Base Table | Purpose | May Have Partitions |
+|------------|---------|---------------------|
+| `sys_ai_record_activity` | AI Record Activity tracking | Yes (0000, 0001, etc.) |
+| `sys_ai_log` | AI Logging | Yes |
+| `sys_ai_config` | AI Configuration | No |
+| `sys_ai_model` | AI Models | No |
+| `sn_gen_ai_*` | Generative AI tables | Varies |
 
 ## Notes About Your STICE Booking Widget
 
-Your current widget code (STICE Booking System) does not directly reference Now Assist. The error is occurring at the platform level, not within your widget scripts. Once the Now Assist configuration is resolved, your booking widget should function normally.
+Your current widget code (STICE Booking System) does not directly reference Now Assist. The error is occurring at the platform level when Now Assist tries to log AI activity for the catalog item. Once the table rotation/partition issue is resolved, your booking widget should function normally.
+
+## Quick Reference - Scripts to Run
+
+**1. Diagnostic Script (run first):**
+```javascript
+// Run in Scripts - Background
+var baseTable = 'sys_ai_record_activity';
+gs.info('=== AI Table Rotation Diagnostic ===');
+gs.info('Base table exists: ' + GlideTableDescriptor.isValid(baseTable));
+for (var i = 0; i < 5; i++) {
+    var partition = baseTable + '000' + i;
+    gs.info('Partition ' + partition + ': ' + GlideTableDescriptor.isValid(partition));
+}
+```
+
+**2. Check Table Rotation Config:**
+```javascript
+// Run in Scripts - Background
+var gr = new GlideRecord('sys_db_object');
+gr.addQuery('name', 'sys_ai_record_activity');
+gr.query();
+if (gr.next()) {
+    gs.info('Table sys_id: ' + gr.sys_id);
+    gs.info('Super class: ' + gr.super_class.getDisplayValue());
+    gs.info('Is extendable: ' + gr.is_extendable);
+}
+```
 
 ---
 
 **Document Created:** January 28, 2026  
+**Document Updated:** January 28, 2026  
 **ServiceNow Instance Type:** Sub-Production (stdev_1)  
-**Error Context:** Now Assist for Catalog Items
+**Error Context:** Now Assist for Catalog Items - Table Rotation Partition Missing
