@@ -2,19 +2,29 @@
 
 ## Error Description
 
-When using Now Assist for a catalog item, you receive the following error:
+When using Now Assist for a catalog item, you receive the following errors:
 
+**Primary Error:**
 ```
 Syntax error or access violation detected by database table 'stdev_1.sys_ai_record_activity0000' does not exist
 ```
 
+**System Log Error:**
+```
+Error getting record for sys_ai_record_activity: java.lang.NullPointerException
+Source: com.glide.ui.ServletErrorListener (system)
+```
+
 ## Root Cause
 
-**This is a Table Rotation/Partition issue.** 
+**This is a Table Rotation/Partition Schema issue.** 
 
-The base table `sys_ai_record_activity` exists, but the error references `sys_ai_record_activity0000` (note the `0000` suffix). In ServiceNow, tables with numeric suffixes are **rotated table partitions**. 
+The base table `sys_ai_record_activity` exists in the dictionary (sys_db_object), but:
+1. The partition table `sys_ai_record_activity0000` does not exist in the actual database
+2. The `NullPointerException` occurs because the code expects the partition table to exist but finds null
+3. The table rotation configuration is pointing to non-existent physical tables
 
-The Now Assist feature is trying to write to a specific partition (`0000`) that doesn't exist in your database, even though the base table configuration exists.
+This is a **schema mismatch** - the ServiceNow dictionary says the table/partitions should exist, but they don't exist in the underlying MySQL/MariaDB database.
 
 ## Common Causes
 
@@ -22,6 +32,17 @@ The Now Assist feature is trying to write to a specific partition (`0000`) that 
 2. **Clone/Refresh Issues** - Table rotation config was cloned but physical partitions weren't
 3. **Failed Table Extension** - The rotation job failed to create the partition tables
 4. **Database Schema Mismatch** - The dictionary says partitions exist but they don't in the actual database
+5. **Plugin Activation Issue** - Now Assist plugin activated but table creation failed silently
+
+## Understanding the NullPointerException
+
+The error `java.lang.NullPointerException` from `com.glide.ui.ServletErrorListener` means:
+- ServiceNow's Java code is trying to get a GlideRecord for `sys_ai_record_activity`
+- The table rotation logic redirects to partition `sys_ai_record_activity0000`
+- That partition table doesn't exist, returning null
+- The code doesn't handle null gracefully, causing the NullPointerException
+
+**This confirms the partition table is missing from the physical database.**
 
 ## Resolution Steps
 
@@ -125,15 +146,115 @@ tables.forEach(function(tableName) {
 });
 ```
 
-### Step 7: Contact ServiceNow Support
+### Step 7: Repair Table Schema (Admin Only)
 
-If the above steps don't resolve the issue:
+If you have admin access, try repairing the table schema:
 
-1. Open a case with ServiceNow Support (HI portal)
-2. Provide the exact error message including the table name with suffix
-3. Mention that the base table exists but partition `0000` is missing
-4. Include your instance version and when the issue started
-5. Note if this started after a clone, upgrade, or plugin installation
+1. Navigate to **System Definition > Tables** (`sys_db_object.list`)
+2. Find `sys_ai_record_activity`
+3. Open the record
+4. Click on **"Repair Table"** from the context menu (right-click on header bar)
+5. This will attempt to sync the dictionary with the actual database schema
+
+Alternatively, try this in **Scripts - Background**:
+
+```javascript
+// Attempt to repair/sync the table
+var tableName = 'sys_ai_record_activity';
+var repair = new GlideTableCreator(tableName, tableName);
+repair.setColumnType('sys_id', 'GUID');
+try {
+    gs.info('Attempting table repair for: ' + tableName);
+    // This forces a schema check
+    var gr = new GlideRecord(tableName);
+    gr.setLimit(1);
+    gr.query();
+    gs.info('Table query completed');
+} catch(e) {
+    gs.error('Table repair failed: ' + e.message);
+}
+```
+
+### Step 8: RECOMMENDED - Contact ServiceNow Support (HI Case)
+
+**Given the NullPointerException error, this likely requires ServiceNow backend intervention.**
+
+Open an HI case with the following details:
+
+**Subject:** Missing partition table sys_ai_record_activity0000 causing NullPointerException
+
+**Description:**
+```
+Instance: [Your instance name - stdev_1]
+Issue: Now Assist for Catalog Items failing
+
+Errors observed:
+1. "Syntax error or access violation detected by database table 
+   'stdev_1.sys_ai_record_activity0000' does not exist"
+
+2. System Log shows:
+   "Error getting record for sys_ai_record_activity: 
+   java.lang.NullPointerException"
+   Source: com.glide.ui.ServletErrorListener
+
+The base table sys_ai_record_activity exists in the dictionary, 
+but the partition table sys_ai_record_activity0000 does not exist 
+in the physical database.
+
+Request: Please create the missing partition table or repair the 
+table rotation configuration.
+```
+
+**Priority:** Based on business impact
+
+### Step 9: Immediate Workaround (While Waiting for Fix)
+
+To get your catalog item working immediately, disable Now Assist:
+
+**Option A - Disable via System Properties:**
+
+Navigate to `sys_properties.list` and create/update these properties:
+
+| Property Name | Type | Value |
+|--------------|------|-------|
+| `glide.ai.enabled` | true/false | `false` |
+| `sn_gen_ai.enabled` | true/false | `false` |
+| `now_assist.enabled` | true/false | `false` |
+
+**Option B - Disable via Script (Scripts - Background):**
+
+```javascript
+// Disable Now Assist features temporarily
+var props = [
+    'glide.ai.enabled',
+    'sn_gen_ai.enabled', 
+    'now_assist.enabled',
+    'sn_gen_ai.enable_catalog_assist'
+];
+
+props.forEach(function(propName) {
+    var gr = new GlideRecord('sys_properties');
+    gr.addQuery('name', propName);
+    gr.query();
+    if (gr.next()) {
+        gr.value = 'false';
+        gr.update();
+        gs.info('Disabled: ' + propName);
+    } else {
+        gs.info('Property not found: ' + propName);
+    }
+});
+gs.info('Now Assist disabled. Catalog items should work without AI features.');
+```
+
+**Option C - Check if there's a Now Assist toggle on the Catalog Item:**
+
+1. Open your catalog item in **Maintain Items**
+2. Look for fields like:
+   - "Enable Now Assist"
+   - "AI Enabled"
+   - "Use Generative AI"
+3. Uncheck/disable these options
 
 ## Prevention
 
