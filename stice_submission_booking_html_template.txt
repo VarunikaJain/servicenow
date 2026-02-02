@@ -51,14 +51,18 @@
           <div class="sub-slot"
                ng-class="[getSlotClass(stice.sys_id, hour, 0), 
                          {'booking-center': getBookingForSlot(stice.sys_id, hour, 0) && isBookingCenter(getBookingForSlot(stice.sys_id, hour, 0), stice.sys_id, hour, 0)},
-                         {'single-slot': getBookingForSlot(stice.sys_id, hour, 0) && isSingleSlotBooking(getBookingForSlot(stice.sys_id, hour, 0))}]"
+                         {'single-slot': getBookingForSlot(stice.sys_id, hour, 0) && isSingleSlotBooking(getBookingForSlot(stice.sys_id, hour, 0))},
+                         {'booking-start': getBookingForSlot(stice.sys_id, hour, 0) && isBookingStart(getBookingForSlot(stice.sys_id, hour, 0), stice.sys_id, hour, 0)},
+                         {'booking-end': getBookingForSlot(stice.sys_id, hour, 0) && isBookingEnd(getBookingForSlot(stice.sys_id, hour, 0), stice.sys_id, hour, 0)}]"
                ng-click="handleSlotClick(stice.sys_id, hour, 0)">
           </div>
  
           <div class="sub-slot"
                ng-class="[getSlotClass(stice.sys_id, hour, 30), 
                          {'booking-center': getBookingForSlot(stice.sys_id, hour, 30) && isBookingCenter(getBookingForSlot(stice.sys_id, hour, 30), stice.sys_id, hour, 30)},
-                         {'single-slot': getBookingForSlot(stice.sys_id, hour, 30) && isSingleSlotBooking(getBookingForSlot(stice.sys_id, hour, 30))}]"
+                         {'single-slot': getBookingForSlot(stice.sys_id, hour, 30) && isSingleSlotBooking(getBookingForSlot(stice.sys_id, hour, 30))},
+                         {'booking-start': getBookingForSlot(stice.sys_id, hour, 30) && isBookingStart(getBookingForSlot(stice.sys_id, hour, 30), stice.sys_id, hour, 30)},
+                         {'booking-end': getBookingForSlot(stice.sys_id, hour, 30) && isBookingEnd(getBookingForSlot(stice.sys_id, hour, 30), stice.sys_id, hour, 30)}]"
                ng-click="handleSlotClick(stice.sys_id, hour, 30)">
           </div>
  

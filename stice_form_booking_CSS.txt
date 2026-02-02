@@ -187,24 +187,14 @@
   border-right: none;
 }
 
-/* Optional: cleaner booking text */
-.booking-info {
-  font-size: 11px;
-  padding: 2px 4px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 500;
-}
-
 /* Hide ONLY internal hour borders between consecutive booked hours */
 .stice-row .time-slot-container.booked-container + .booked-container {
   border-left-color: transparent;
 }
 
 .booking-calendar-widget .calendar-grid .sub-slot.booked {
-  background-color: #c8d1dc !important;
-  border-color: #c8d1dc !important;
+  background-color: #e0e5eb !important;
+  border-color: #e0e5eb !important;
   outline: none !important;
   box-shadow: none !important;
   background-image: none !important;
@@ -212,9 +202,34 @@
 
 /* If the hour container itself has borders, hide them when that hour has any booking. */
 .booking-calendar-widget .calendar-grid .time-slot-container.booked-container {
-  border-color: #c8d1dc !important;
+  border-color: #e0e5eb !important;
   box-shadow: none !important;
 }
+
+/* =====================================================
+   ROUNDED CORNERS FOR BOOKED SLOTS
+   ===================================================== */
+
+/* Rounded left corners for booking START */
+.sub-slot.booked.booking-start {
+  border-top-left-radius: 8px;
+  border-bottom-left-radius: 8px;
+}
+
+/* Rounded right corners for booking END */
+.sub-slot.booked.booking-end {
+  border-top-right-radius: 8px;
+  border-bottom-right-radius: 8px;
+}
+
+/* Single slot booking - round ALL corners */
+.sub-slot.booked.single-slot {
+  border-radius: 8px;
+}
+
+/* =====================================================
+   CALENDAR ICON POSITIONING
+   ===================================================== */
 
 /* Calendar icon - base positioning for multi-slot bookings */
 .sub-slot.booked.booking-center {
