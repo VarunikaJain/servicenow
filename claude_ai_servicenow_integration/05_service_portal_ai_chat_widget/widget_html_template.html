@@ -1,0 +1,144 @@
+<!-- AI Chat Widget HTML Template -->
+<div class="ai-chat-container">
+    
+    <!-- Header -->
+    <div class="ai-chat-header">
+        <div class="header-icon">
+            <i class="fa fa-robot"></i>
+        </div>
+        <div class="header-title">
+            <h4>AI Assistant</h4>
+            <span class="status-indicator">
+                <span class="status-dot"></span>
+                Online
+            </span>
+        </div>
+        <div class="header-actions">
+            <button class="btn btn-link" ng-click="c.clearChat()" title="Clear chat">
+                <i class="fa fa-trash"></i>
+            </button>
+        </div>
+    </div>
+    
+    <!-- Messages Container -->
+    <div class="ai-chat-messages">
+        
+        <!-- Help Section (shown initially) -->
+        <div class="help-section" ng-show="c.showHelp">
+            <h5>What can I help you with?</h5>
+            <div class="action-cards">
+                <div class="action-card" ng-repeat="action in c.data.supportedActions">
+                    <div class="card-icon">
+                        <i class="fa {{action.icon}}"></i>
+                    </div>
+                    <div class="card-content">
+                        <h6>{{action.name}}</h6>
+                        <div class="example-prompts">
+                            <span class="example-label">Try:</span>
+                            <button class="example-btn" 
+                                    ng-repeat="example in action.examples" 
+                                    ng-click="c.useExample(example)">
+                                "{{example}}"
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Chat Messages -->
+        <div class="message" 
+             ng-repeat="msg in c.messages" 
+             ng-class="{'user-message': msg.type === 'user', 'ai-message': msg.type === 'ai'}">
+            
+            <!-- Avatar -->
+            <div class="message-avatar">
+                <i class="fa" ng-class="msg.type === 'user' ? 'fa-user' : 'fa-robot'"></i>
+            </div>
+            
+            <!-- Message Content -->
+            <div class="message-content">
+                <div class="message-bubble" 
+                     ng-class="{'success': msg.success === true, 'error': msg.success === false && !msg.needsClarification, 'clarification': msg.needsClarification}">
+                    
+                    <p ng-bind-html="msg.content"></p>
+                    
+                    <!-- Record Link (if created) -->
+                    <div class="record-link" ng-if="msg.recordNumber">
+                        <a ng-click="c.openRecord(msg.recordLink)" class="btn btn-sm btn-primary">
+                            <i class="fa fa-external-link"></i>
+                            View {{msg.recordType}} {{msg.recordNumber}}
+                        </a>
+                    </div>
+                    
+                    <!-- Query Results (if searching) -->
+                    <div class="query-results" ng-if="msg.records && msg.records.length > 0">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Number</th>
+                                    <th>Short Description</th>
+                                    <th>State</th>
+                                    <th>Assigned To</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr ng-repeat="record in msg.records">
+                                    <td>
+                                        <a href="/nav_to.do?uri={{record.sys_id}}" target="_blank">
+                                            {{record.number}}
+                                        </a>
+                                    </td>
+                                    <td>{{record.short_description | limitTo: 50}}{{record.short_description.length > 50 ? '...' : ''}}</td>
+                                    <td>{{record.state}}</td>
+                                    <td>{{record.assigned_to}}</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                </div>
+                <span class="message-time">{{c.formatTime(msg.timestamp)}}</span>
+            </div>
+        </div>
+        
+        <!-- Loading Indicator -->
+        <div class="message ai-message" ng-show="c.isLoading">
+            <div class="message-avatar">
+                <i class="fa fa-robot"></i>
+            </div>
+            <div class="message-content">
+                <div class="message-bubble typing">
+                    <div class="typing-indicator">
+                        <span></span>
+                        <span></span>
+                        <span></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+    
+    <!-- Input Area -->
+    <div class="ai-chat-input">
+        <div class="input-container">
+            <textarea 
+                ng-model="c.userInput" 
+                ng-keypress="c.handleKeyPress($event)"
+                placeholder="Type your request here... (e.g., 'Create an incident for email not working')"
+                rows="1"
+                ng-disabled="c.isLoading">
+            </textarea>
+            <button class="send-btn" 
+                    ng-click="c.sendMessage()" 
+                    ng-disabled="!c.userInput || c.isLoading">
+                <i class="fa fa-paper-plane"></i>
+            </button>
+        </div>
+        <div class="input-hint">
+            Press Enter to send. I can create incidents, request services, search records, and more.
+        </div>
+    </div>
+    
+</div>
