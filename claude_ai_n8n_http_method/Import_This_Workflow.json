@@ -1,0 +1,153 @@
+{
+  "name": "Claude AI + ServiceNow (HTTP Only)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "ai-servicenow",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1.1,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "PASTE_YOUR_CLAUDE_API_KEY_HERE"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 1024,\n  \"system\": \"Return ONLY valid JSON: {\\\"action\\\":\\\"CREATE\\\",\\\"table\\\":\\\"table_name\\\",\\\"fields\\\":{\\\"field\\\":\\\"value\\\"}}. Tables: incident(short_description,description,urgency,impact), change_request(short_description,description,type), problem(short_description,description), task(short_description,description). Example: user says email down return {\\\"action\\\":\\\"CREATE\\\",\\\"table\\\":\\\"incident\\\",\\\"fields\\\":{\\\"short_description\\\":\\\"Email down\\\",\\\"description\\\":\\\"Email service not working\\\",\\\"urgency\\\":\\\"2\\\",\\\"impact\\\":\\\"2\\\"}}\",\n  \"messages\": [{\"role\": \"user\", \"content\": \"{{ $json.body.prompt }}\"}]\n}",
+        "options": {}
+      },
+      "id": "node-claude",
+      "name": "Call Claude API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst aiText = response.content[0].text;\n\nconst jsonMatch = aiText.match(/\\{[\\s\\S]*\\}/);\nif (!jsonMatch) {\n  throw new Error('No JSON found: ' + aiText);\n}\n\nconst parsed = JSON.parse(jsonMatch[0]);\n\nreturn {\n  json: {\n    table: parsed.table,\n    fields: parsed.fields\n  }\n};"
+      },
+      "id": "node-code",
+      "name": "Parse Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://REPLACE_WITH_YOUR_INSTANCE.service-now.com/api/now/table/{{ $json.table }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.fields }}",
+        "options": {}
+      },
+      "id": "node-servicenow",
+      "name": "Create in ServiceNow",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.1,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"success\": true,\n  \"table\": \"{{ $('Parse Response').item.json.table }}\",\n  \"number\": \"{{ $json.body.result.number }}\",\n  \"sys_id\": \"{{ $json.body.result.sys_id }}\"\n}",
+        "options": {}
+      },
+      "id": "node-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1200, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Call Claude API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Claude API": {
+      "main": [
+        [
+          {
+            "node": "Parse Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Response": {
+      "main": [
+        [
+          {
+            "node": "Create in ServiceNow",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create in ServiceNow": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "pinData": {},
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
