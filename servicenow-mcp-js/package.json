@@ -1,0 +1,11 @@
+{
+  "name": "servicenow-mcp-server",
+  "version": "1.0.0",
+  "description": "MCP Server to connect Claude with ServiceNow",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "keywords": ["mcp", "servicenow", "claude", "ai"],
+  "license": "MIT"
+}
