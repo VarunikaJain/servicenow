@@ -1,0 +1,71 @@
+================================================================================
+ EMAIL NOTIFICATION
+================================================================================
+
+ Navigate to: System Notification > Email > Notifications > New
+
+ ── "When to send" tab ──
+ ────────────────────────
+ Name:            Record Producer Submission with CC
+ Table:           <Your Record Producer target table>
+ Send when:       Event is fired
+ Event name:      <your_table>.record_producer.submitted
+                  (must match the Event Registration)
+ Active:          true
+
+ ── "Who will receive" tab ──
+ ────────────────────────────
+ Users:           (leave empty - we use the mail script to set recipients)
+ Groups:          (leave empty)
+ Send to event creator:  false
+
+ >> Under "Additional recipients" section:
+    - Check "Include an email script"
+    - Select the mail script: "Record Producer CC Recipients"
+      (see companion mail script file)
+
+ ── "What it will contain" tab ──
+ ────────────────────────────────
+ Subject:         New submission: ${number} - ${short_description}
+                  (adjust to match your table fields)
+
+ Message HTML:    (compose your email body - example below)
+ ──────────────────────────────────────────────────────────
+
+   <p>Hello,</p>
+
+   <p>A new request has been submitted with the following details:</p>
+
+   <table style="border-collapse: collapse; width: 100%;">
+     <tr>
+       <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Number</td>
+       <td style="padding: 8px; border: 1px solid #ddd;">${number}</td>
+     </tr>
+     <tr>
+       <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Requested by</td>
+       <td style="padding: 8px; border: 1px solid #ddd;">${sys_created_by}</td>
+     </tr>
+     <tr>
+       <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Short Description</td>
+       <td style="padding: 8px; border: 1px solid #ddd;">${short_description}</td>
+     </tr>
+     <tr>
+       <td style="padding: 8px; border: 1px solid #ddd; font-weight: bold;">Description</td>
+       <td style="padding: 8px; border: 1px solid #ddd;">${description}</td>
+     </tr>
+   </table>
+
+   <p>Please review and take the necessary action.</p>
+
+   <p>Thank you.</p>
+
+================================================================================
+ NOTES
+================================================================================
+ - Adjust field references (${number}, ${short_description}, etc.) to match
+   the actual fields on your target table.
+ - The mail script (see companion file) handles:
+     1. Sending to the approver as the primary recipient
+     2. Adding all CC addresses from the u_cc field
+ - You can customize the email body as needed.
+================================================================================

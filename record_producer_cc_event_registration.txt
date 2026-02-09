@@ -1,0 +1,23 @@
+================================================================================
+ EVENT REGISTRATION
+================================================================================
+
+ Navigate to: System Policy > Events > Registry > New
+
+ Configuration:
+ ----------------
+ Suffix:        record_producer.submitted
+ Table:         <Your Record Producer target table>  (e.g. sc_req_item, or your custom table)
+ Description:   Fired when a record producer submission is created.
+                Used to trigger the notification that includes CC recipients.
+ Application:   <Your scoped app or Global>
+
+================================================================================
+ NOTES
+================================================================================
+ - The event name will be: <table_name>.record_producer.submitted
+   For example, if your target table is sc_req_item, the full event name
+   would be: sc_req_item.record_producer.submitted
+ - This event is fired by the Business Rule (see companion file).
+ - The Notification listens for this event to send the email.
+================================================================================
