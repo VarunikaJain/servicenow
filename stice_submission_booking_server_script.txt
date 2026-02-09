@@ -164,7 +164,6 @@ endGdt.setNumericValue(current_date.getNumericValue() + duration_ms);
                 stice: booking_data.stice,
                 recurrence: booking_data.recurrence,
 							  recurrence_end_date: recurrence_end_date,
-                cc: booking_data.cc || "",
                 start_date_time: current_date.getValue(),
                 end_date_time: endGdt.getValue()
             };
@@ -254,7 +253,6 @@ endGdt.setNumericValue(current_date.getNumericValue() + duration_ms);
         createGr.setValue("stice", bookingData.stice.value || bookingData.stice);
         createGr.setValue("recurrence", bookingData.recurrence || "");
 			  createGr.setValue("recurrence_end_date", bookingData.recurrence_end_date);
-        createGr.setValue("u_cc", bookingData.cc || "");
         createGr.start_date_time.setDisplayValue(bookingData.start_date_time);
         createGr.end_date_time.setDisplayValue(bookingData.end_date_time);
         return createGr.insert();

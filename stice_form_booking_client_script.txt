@@ -13,44 +13,11 @@ api.controller = function($scope, spUtil, $filter) {
 
 
 
-    // Validate CC email addresses: each must contain '@' and '.'
-    function validateCCEmails(ccString) {
-        if (!ccString || ccString.trim() === '') {
-            return { valid: true, errors: [] };
-        }
-        var emails = ccString.split(';');
-        var invalidEmails = [];
-        for (var i = 0; i < emails.length; i++) {
-            var email = emails[i].trim();
-            if (email === '') continue; // skip empty entries from trailing semicolons
-            if (email.indexOf('@') === -1 || email.indexOf('.') === -1) {
-                invalidEmails.push(email);
-            }
-        }
-        if (invalidEmails.length > 0) {
-            return {
-                valid: false,
-                errors: invalidEmails
-            };
-        }
-        return { valid: true, errors: [] };
-    }
-
-    $scope.ccError = '';
-
     $scope.confirm = function() {
         if (!c.newBooking.booked_for || !c.newBooking.project.value || !c.newBooking.stice.value || !c.newBooking.start_date || !c.newBooking.end_date || !c.newBooking.start_time || !c.newBooking.end_time) {
             spUtil.addInfoMessage("Fill all the mandatory fields");
             return;
         }
-
-        // Validate CC field
-        var ccValidation = validateCCEmails(c.newBooking.cc);
-        if (!ccValidation.valid) {
-            $scope.ccError = "Invalid email address(es): " + ccValidation.errors.join(', ') + ". Each address must contain '@' and '.'";
-            return;
-        }
-        $scope.ccError = '';
 
         const format_start_date = $filter('date')(c.newBooking.start_date, 'yyyy-MM-dd');
         const format_end_date = $filter('date')(c.newBooking.end_date, 'yyyy-MM-dd');
