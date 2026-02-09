@@ -1,0 +1,33 @@
+================================================================================
+ RECORD PRODUCER - CC VARIABLE DEFINITION
+================================================================================
+
+ Navigate to: Your Record Producer > Variables tab > New
+
+ Field Configuration:
+ --------------------
+ Type:              String (Single Line Text)
+ Order:             (place it where you want it in the form, e.g. 300)
+ Question:          CC
+ Name:              u_cc
+ Mandatory:         false
+
+ Help text / Instructions:
+ -------------------------
+ This field can contain several email addresses separated by ';'.
+ In addition to the approver, a copy of the email will be sent to the
+ addresses stored in this field.
+
+ Tooltip:           Enter email addresses separated by ';'
+
+ Default value:     (leave empty)
+
+================================================================================
+ NOTES
+================================================================================
+ - The variable name "u_cc" will be used in the Catalog Client Script for
+   validation and in any downstream workflow/flow to read the CC addresses.
+ - If you need a longer input, use type "Multi Line Text" instead of "String".
+ - The Catalog Client Script (see companion file) handles validation to ensure
+   every address contains '@' and '.'.
+================================================================================
