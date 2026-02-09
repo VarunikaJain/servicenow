@@ -92,6 +92,22 @@
             <label>Recurrence End Date *</label>
             <input type="date" ng-model="c.newBooking.recurrence_end_date" class="form-control" required>
         </div>
+
+        <!-- CC Field -->
+        <div class="form-group">
+            <label>CC</label>
+            <input type="text" 
+                   ng-model="c.newBooking.cc" 
+                   class="form-control" 
+                   placeholder="email1@example.com;email2@example.com">
+            <p class="help-block" style="font-size: 12px; color: #737373; margin-top: 4px;">
+                This field can contain several email addresses separated by '<strong>;</strong>'.
+                In addition to the approver, a copy of the email will be sent to the addresses stored in this field.
+            </p>
+            <p class="text-danger" ng-show="ccError" style="font-size: 12px; margin-top: 4px;">
+                {{ccError}}
+            </p>
+        </div>
     </div>
     
     <!-- Footer Buttons -->

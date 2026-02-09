@@ -43,7 +43,8 @@ api.controller = function($scope, spUtil, $filter, spModal, $uibModal, $timeout)
             "start_time": "",
             "end_time": "",
             "start_date_time": "",
-            "end_date_time": ""
+            "end_date_time": "",
+            "cc": ""
         };
     };
 
