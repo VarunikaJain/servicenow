@@ -3,39 +3,88 @@
 ## Question
 When a record (specifically a draft record) is deleted in ServiceNow, is SAP being notified about the deletion, or is it only deleted from ServiceNow without notifying SAP?
 
-## Answer
-**SAP is NOT being notified about record deletions -- and for draft records, SAP never even knows the record existed in the first place.** Based on the reviewed CDN dynamic approval process workflows, records are only being deleted/closed within ServiceNow without any outbound deletion callback to SAP.
+## Answer (UPDATED based on KT Document - Arcade_KT.txt)
+
+**YES, SAP IS notified when a draft record is deleted.** The deletion notification is NOT part of the approval workflow (CDN dynamic approval process v2) shown in the screenshots -- it is handled through a **separate mechanism** triggered by the Delete action in the UI banner.
+
+Key facts:
+1. **Draft records already have a SAP ID** -- SAP is contacted during submission (save-with-status API) and assigns an ID before the procurement case is created in ServiceNow
+2. **On deletion, `set status` API is called with status "W"** -- this notifies SAP that the record has been deleted
+3. **A `delete record` REST API validates with SAP first** -- if SAP returns an error, the record is NOT deleted from ServiceNow
+4. **The approval workflow screenshots do NOT show the deletion logic** -- deletion is handled via Business Rules / UI Actions tied to the delete button, not the approval flow
 
 ---
 
-## Draft Record Deletion -- Specific Analysis
+## IMPORTANT: Correction from Initial Screenshot-Only Analysis
 
-The main flow ("CDN dynamic approval process v2") has a critical gate at **Step 1**:
+The initial analysis (based solely on the approval workflow screenshots) incorrectly concluded that SAP was not notified. The **approval workflow (CDN dynamic approval process v2)** only handles the approval routing -- it does NOT handle deletion. The deletion notification to SAP is implemented as a **separate mechanism** outside of that workflow.
 
-> **Wait For Procurement Case Condition** where State is **"Work in progress"** AND **Approvers JSON is not empty**
+---
 
-A draft record sits in a **"Draft" state**, which means:
+## Draft Record Lifecycle
 
-1. **The flow never progresses past Step 1** -- it remains waiting for the state to change to "Work in progress"
-2. **No SAP/CDN API calls have been made** -- `CDN - fetchToken` and `CDN - setStatus v2` only execute in Steps 39+ (via the CDN Approval Steps subflows), which are far beyond the wait gate
-3. **SAP has no knowledge the draft record exists** -- since the approval process never started, no outbound communication was ever sent
-4. **When the draft is deleted**, the flow instance is simply cancelled/terminated at the wait step -- there is no cleanup call, no deletion event, and no SAP notification
-5. **Result**: The draft is removed from ServiceNow silently. SAP is completely unaware because it was never informed of the record's creation in the first place
+### How a Draft Record is Created (from KT, timestamps 42:21-48:02)
 
-### Flow Execution Timeline for a Draft Record
+The submission process follows these steps:
 
 ```
-Trigger: Procurement Case Created (types 112, 111)
+User fills form and clicks Submit
     |
     v
-Step 1: Wait For Condition (State = "Work in progress" AND Approvers JSON not empty)
+1. Check Consistency (API call to SAP with status "C")
     |
-    |--- Record is in "Draft" state --> Flow BLOCKED here, waiting...
+    ├── FAILS --> Stay on form, show error. Nothing created anywhere.
     |
-    |--- User deletes the draft record --> Flow instance CANCELLED
+    └── SUCCEEDS
+         |
+         v
+2. Save to SAP (API call with save status)
+    |    SAP stores the request and returns a SAP ID (Zid)
+    |    "From this moment on, this will be the link between SAP and ServiceNow"
     |
-    X  (No SAP communication ever occurred)
+    ├── FAILS --> Stay on form. No procurement case created in ServiceNow.
+    |             No orphan records. SAP ID not received.
+    |
+    └── SUCCEEDS (SAP ID received)
+         |
+         v
+3. Get Approvers (API call to SAP)
+    |
+    ├── FAILS --> Procurement case created in DRAFT status
+    |             Error logged in the record (catch error field)
+    |             User sees it in their list as draft with error
+    |             Approval workflow does NOT trigger (waits for "Work in progress")
+    |
+    └── SUCCEEDS
+         |
+         v
+4. Procurement case created in "Work in progress" status
+   Approval workflow triggers and proceeds
 ```
+
+**Key insight**: Draft records are created when Step 3 (Get Approvers) fails. By that point, **Step 2 has already succeeded**, meaning **SAP already knows about the record and has assigned a SAP ID**.
+
+### How a Draft Record is Deleted (from KT, timestamps 24:27 and 28:50)
+
+```
+User clicks "Delete" from the banner action bar
+    |
+    v
+"delete record" REST API called --> Validates with SAP if deletion is allowed
+    |
+    ├── SAP returns ERROR --> Record is NOT deleted from ServiceNow
+    |                         Error message displayed to user
+    |
+    └── SAP allows deletion
+         |
+         v
+    "set status" API called with status "W" --> Notifies SAP of deletion
+         |
+         v
+    Record deleted from ServiceNow
+```
+
+**SAP is notified with status "W" and the record is only deleted if SAP confirms it is allowed.**
 
 ---
 
@@ -94,31 +143,40 @@ Step 1: Wait For Condition (State = "Work in progress" AND Approvers JSON not em
 
 ---
 
-## Key Findings
+## Key Findings (Updated with KT Document Evidence)
 
-### SAP Communication Points (Existing)
-The **only** outbound API calls to SAP/CDN found in these workflows are:
-1. **`CDN - fetchToken`** - Authentication token retrieval
-2. **`CDN - setStatus v2`** - Approval/rejection status update
+### SAP Communication Points -- Full Picture
 
-Both calls are used exclusively during the **approval process**, not for deletion events.
+Based on the KT document (Arcade_KT.txt), the SAP API calls are NOT limited to the approval workflow. The full set of SAP communication points includes:
 
-### What is Missing
-- **No deletion trigger**: There is no Business Rule, Flow, or Workflow that fires when a Procurement Case record is deleted
-- **No outbound deletion API call**: No REST message or action that communicates record deletion to SAP
-- **No deletion event**: No ServiceNow event is registered for record deletion that could trigger SAP notification
+| API Call | When Used | Status Code | Purpose |
+|----------|-----------|-------------|---------|
+| `check data integrity` | Form submission (check button) | "C" | Validate form data with SAP |
+| `header set / save` | Form submission | Save status | SAP stores request, returns SAP ID |
+| `get approvers` | After save to SAP | N/A | Retrieve dynamic approver list from SAP |
+| `set status` | Approval granted | Approval status | Notify SAP of individual approval |
+| `set status` | All approvals complete | "O" (OK) | Notify SAP case is fully approved |
+| **`set status`** | **Record deleted** | **"W"** | **Notify SAP of deletion** |
+| `delete record` | Before deletion | N/A | Check with SAP if deletion is allowed |
+| `fetch token` | Before any API call | N/A | Get authentication cookie + token |
+| `get document number` | Scheduled job | N/A | Retrieve billing document number from SAP |
+| `attachment` | After case creation | N/A | Send attachments to SAP |
 
-### Data Synchronization Gap
-When a record is deleted in ServiceNow:
-- ServiceNow removes/closes the record locally
-- SAP retains the record in its last known state (e.g., pending approval, approved, rejected)
-- This creates an **out-of-sync state** between the two systems
+### Deletion IS Handled -- But NOT in the Approval Workflow
 
-### Draft Records -- No Gap Exists (But No Notification Either)
-When a **draft** record is deleted:
-- SAP was never informed of the record (flow blocked at Step 1 wait condition)
-- No sync gap exists because SAP has no corresponding record
-- However, if SAP **should** be notified about draft deletions for audit/tracking purposes, that logic does not exist today
+The approval workflow screenshots only showed the approval routing logic. The **deletion notification to SAP** is implemented separately through:
+1. The **"Delete" UI action** in the banner (edit/duplicate/delete actions)
+2. The **`delete record` REST API** -- validates with SAP before allowing deletion
+3. The **`set status` REST API with status "W"** -- notifies SAP of the deletion
+
+### Draft Records -- SAP IS Notified
+
+Draft records **do have a SAP ID** because:
+- The save-to-SAP call succeeded (SAP assigned an ID)
+- The get-approvers call failed (causing the draft status)
+- Therefore SAP already knows about the record
+- When deleted, SAP is notified via `set status` with "W"
+- If SAP rejects the deletion, the record remains in ServiceNow
 
 ---
 
@@ -135,23 +193,51 @@ When a **draft** record is deleted:
 
 ---
 
-## Recommendation
+## Summary of SAP Status Codes (from KT)
 
-To ensure SAP is notified when a record is deleted in ServiceNow, the following should be implemented:
-
-1. **Create a deletion trigger** - A Business Rule or Flow Designer trigger that fires on record deletion from the Procurement Case table
-2. **Implement an outbound REST call** - Similar to `CDN - setStatus v2`, create a REST action that sends a deletion notification to SAP (e.g., `CDN - notifyDeletion` or use `setStatus` with a "deleted" status)
-3. **Add retry logic** - Follow the existing pattern with up to 4 retries and 30-second wait intervals
-4. **Add error handling** - Log failures and notify L1/Requestor if the SAP deletion notification fails
-5. **Consider a "soft delete" approach** - Instead of deleting records, set a status to "Deleted" and then sync that status to SAP via the existing `CDN - setStatus v2` mechanism
+| Status Code | Meaning | When Sent |
+|-------------|---------|-----------|
+| "C" | Check / Consistency validation | When user clicks "Check" button on the form |
+| Save status | Save/Create request | On form submission, SAP stores and returns SAP ID |
+| Approval status | Approval decision | When each approver approves/rejects |
+| "O" (OK) | Fully approved | When all approval levels are complete |
+| **"W"** | **Deleted** | **When a record is deleted from ServiceNow** |
 
 ---
 
-## Questions / Additional Details Needed
+## KT Document Evidence (Direct Quotes)
 
-- What SAP endpoint should be called for deletion notifications?
-- Should the deletion notification use the same `CDN - setStatus v2` action with a specific status value (e.g., "deleted"), or does SAP expose a separate deletion API?
-- Are there other flows or Business Rules (not shown in the screenshots) that might handle deletion scenarios?
-- Is there a specific Procurement Case table Business Rule that might already handle this at the database level?
-- For draft records specifically: should SAP be notified about draft creation/deletion, or is it acceptable that SAP only learns about records once they reach "Work in progress"?
-- Are there any other record states (beyond draft) where deletion can occur before SAP has been contacted?
+### On deletion notifying SAP (timestamp 24:27):
+> *"We have the delete so when we delete record we call the set status with W and when the procurement case is completely approved... we communicate a status OK"*
+
+### On the delete record API (timestamp 28:50):
+> *"We have the delete record that is used to check if we can cancel creditor debit note. If I delete, if I get error on the API, will not delete the record."*
+
+### On SAP ID assignment (timestamp 43:48):
+> *"Save with status... we call again this one with a different status because in this way SAP stores request and gives us an ID... from this moment on this will be the link for everything between SAP and ServiceNow"*
+
+### On draft creation from errors (timestamp 47:05):
+> *"The error scenario here is that the request will be created putting draft... draft status by definition is not triggering any workflow"*
+
+### On error retry logic (timestamp 24:58):
+> *"What happens if one of the API goes down? We try to call the same API three times... if the third time the API fails again, add a work note to the procurement case telling the user that the API is failing"*
+
+---
+
+## Conclusion
+
+**SAP IS notified when a draft record is deleted in ServiceNow.** The deletion mechanism is:
+1. `delete record` REST API validates with SAP that deletion is allowed
+2. `set status` REST API sends status "W" to SAP to communicate the deletion
+3. If the API fails, the record is NOT deleted from ServiceNow (preventing data sync issues)
+
+This deletion logic is implemented **outside** the approval workflow (CDN dynamic approval process v2) shown in the screenshots -- it is triggered from the Delete action in the UI banner and handled via Business Rules / REST API calls.
+
+---
+
+## Remaining Questions
+
+- Where exactly is the deletion logic implemented? (Business Rule, UI Action, or Client Script on the Procurement Case table?)
+- Does the deletion also have retry logic (like the 3 retries + 30-second wait in the approval flow)?
+- What specific error messages are displayed to the user if SAP rejects the deletion?
+- Are there any edge cases where a procurement case might not have a SAP ID (e.g., if created through a different mechanism)?
