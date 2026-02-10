@@ -1,0 +1,340 @@
+Arcade Use case Knowledge transfer-20251114_093344-Meeting Recording
+
+0:09
+Ok, is my screen invisible? Okay redmi checking time recording Yes recording niente scritto. Ok OK, so to the will explain you arcade record producer in thiskate session.
+
+0:38
+So basicley we have a standard eggre producer we R we have to field mandatory fields to summit the request dus fields are populated sometimes with the rest PI soffer example the field reason is shing field based and the response of NPI.
+
+1:05
+Type righane ever credit or the bit node the pending from what you are a sum meeting then with the Direct and the finalship to the Tar all sweepy deather colled One the changes inveius so if you field Direct ship to from sample with is value i do you King see the py responded, okay.
+
+1:33
+And end you are able to fill this this fields. I've not the fields i fields tabron value. The fields with will be MT automaticaly based on the directship to give also calculation of detacs code that is a list of value it penson what we insert on the directship to.
+
+2:02
+Then we have all so the currency that is euro, japanese, n or American Dollar. We have the heater text that is a stringfield so you massing Sert what you want in twenty five characters geve note them ount and hearwe a table. This is a Custom table, so is a widget.
+
+2:28
+Where we can insert massive valius so massive record so we can have a more than One roll all so year. Ich ich field preg sample in Voice number is NPI so if a insert in Voice and item product quantity, price amount and Final.
+
+2:56
+Show be calcolated automatically insertthisindwasnumberandtheitemdatiestenautofiletheproductquantitythepricetheamountandthefinalallsothe.cn the end amount is. As you can see is populated and this value is the amount.
+
+3:25
+In productionyouwillnot.ch TML Jason field and the Eather Jason d are to simplified the bugging in q way and that we can see this is what to we cent when with leake on summit to sap so we are you can find the information that I've filled before. Ok moving next wet the check Button.
+
+3:49
+The check Button is too validate World to we insert in the form so or so weekend choose if summit the requestas draft so insetus draft or in work in progress so wreak sample i can't click on check and if everything Kiss OK IWLCM message here that tell me you can some.
+
+4:17
+Something Brown in the field because the usare example value.
+
+5:00
+So in the screen don't have values for test, but i can try with a request of Laurent so second.
+
+5:35
+Just take it a just mitted request of lauran bovard and click on check and the inserted by loran are Welcome figurated zone. Now I'm a love to summit the request. Okay? And when is ammit a request a procurement kist record is created.
+
+6:05
+Let it a moment, okay? As you can see, i click on summit and a problement case is created. The table where the problement case hear stored is this One.
+
+6:58
+Ok, so year is a sto is a you can't see what we have summithed and in additional we have the field sup id approve end a brover Jason. This field on the submission is populated by the response of sub and this the supply then we have all to the prover. Jason.
+
+7:30
+And you can see here we have users so that I've different roll maybe and the are the approver basically. Okay, questo will continuo with the technical document to show you di objects that are in place.
+
+8:16
+Is.
+
+8:22
+
+
+8:55
+Okay, this is the technical document. Think love. You can Access to this if not the game provider link now.
+
+9:21
+Okay, as Forst with the record producer for bowling the submission, then we have the filter. Su basically is used to fach data in my request Section su. As you can see il fly go in my request.
+
+9:48
+I'm with Lauren so you can filter for credit de beat not record producer and the well see and you well see the record the side and to open by U open by the user okay than we have the to does configuration that alo the user to SEE in my Activity.
+
+10:16
+The Request of the arcade CDAN openad or in completed based on the state than we have on the record producer allot of cattle of client script and frate sampleweb the checktat integrations of mission and this a catalocktal client script dot is trigrade when we summit.
+
+10:47
+And H ex the data yours of meeting script to high Perfect to move to client script.
+
+11:11
+Based on the Union di Price and the order quantities o basecalese what i show and you befored and the custom table and UC di amount was autocalculated.
+
+11:39
+Jack onload DAT format the product and values currency and the last One thatchet the debit in based on the request hype check if i New entry prices and mitted OKO we have to scripting clouds that use in the call client client script One is used for attachment and the other.
+
+12:08
+Is used basic Creed to the other staffs or trip data carency reason due PA call and what els all so we have widget the check for in consisties I think this is the check Button o basely way New click on the check Button.
+
+12:34
+The widgets that wear using is Jack for in consists o what we are sending to up danewheve the search Direct and search finalship too e don't know if you remember i show you secondo grain the Form Dietter dos feels becaused dos feels are custom and Inside is widget. In the server part you will find restaprided to were calling.
+
+13:01
+All say for got to show you for eich of dos e fai click on the Lens a pop up will opening and based on the paramiter that insert incastomer di name and West numberland clicking consearchy is show you resealt that can be One or more so, but you can t's just One. OK, so we have the end Voice Tab.
+
+13:29
+That is the table to is in West tabes the table here i forgot year all so to mansion that you can is not hunting good us I have to feel the others butter I have the add road New price the massive deleted that Little.
+
+13:58
+Who's What Your feeled we've massa upload and or the massa upload. You can download the template from this link here. So you must feel the template massa upload and and an you will see here that and rose base it on di based what you inserting di just V are inserted.
+
+14:24
+So moving next we have the banner turn back so i Mary guest plage is used to do some action so i will show you in my diquest working progress draft okay burner turn back is this One is the see.
+
+14:57
+To identify to identify di di record and an in action you can edit, duplicate or delete. You have the Edit or delete the duplicate open Nine form that is a copia what you have summit di here, but you can summit and you request then with the edit wedit the current request and thenway the delete.
+
+15:29
+To the record, OK OK web Summer in the Tales or opening asame meeting nothing. The hub. We have the task widget with the logic in notevoling metal extection of the hub.
+
+15:52
+But is not mory use because as you can see is market notti news. Okay, so moving next weve the first two business rull that the first three business rull that hard diactivated because I've not more required for.
+
+16:21
+New request so so where using the Cdn Save a straptary di for summit business ruled it streeggered when a procure my i fem not for One secondo è open open the business rule of the arcade.
+
+17:07
+This is the Fork.
+
+17:51
+OK di START When windsurf ora Update recording draft and basically is you used to send to Samp di attachment and the procurement case number than we have the set status.
+
+18:17
+That by calling dire SPI is setting the status ons up and the valid of this state that to wear setting to sap is populitaning summit cattle client script. Then we have the Business School for Getting attachment for the notification.
+
+18:47
+We have the set rejection comment that copy the last comment the current record to the releted problement request. For this use case we have all so notification as we have the first to that i've nowhere news abot where using notification to SRS Beats.
+
+19:16
+Dati is base Creed and notification for the approvers dati streegrade in the flow give the standard closured notification the document number and PDF dati strigrade by the scheduljob to retrieved supply d and weaved technical feior dati is dati S wegraded this notification in the last wave.
+
+19:45
+So basically is to alert di istu alert di user dat summit that if an erro cursin di RSPI is problement cased record will be we 7 under status traft so with not summit it.
+
+20:15
+A than we have all so technical fair for requestor and One and the approver dot of triggered in the flow designer and all su here dos notification are used.
+
+20:38
+To notify the users that name B some problem of course with di happy. Okay okay does are the flows but i perferred to start to explain uded cd and Dynamic pluval process to.
+
+21:12
+Because is spart of the last wave. So basically is a work of the reversion One. So One second because i open it, OCD, NOK sto. When you summit record producer a procurament case record is creative. Then this record is created and.
+
+22:05
+There is a naditional check because here if i cave to click edit now the case Type is One of creditors. The bit note there Flow is trigrad store we have at the line One appro condition because c state School be work in progress and the approvarel Jason Shell be populated Windows condition match.
+
+22:35
+Nationer that basically this action we past json the approver information so usa Jason dand we fecit and we retriva approvals so for Rich approvals basey done is roll that cour Beats approver sales approver GBS so legal rettity approver we ask an approval.
+
+23:03
+So in the last wave we are the da technical retry because if i open the subflow you can see that when a user approvo rejects you will call on happy i that first One is the first token. The first token is user to receive the cookie.
+
+23:32
+And a token that we use for roly p eyes in arcade development and and by retriving this we call other sepy Eye for in this cases the set status. So we past the set status, the cookie and the token that we retrived on the fetch token and the i calles and the set status will communicate tus up the status of the approval.
+
+24:02
+So basically we have a lot of status when is summit it we communicated S status when is approved by a approved.
+
+24:27
+We have the delete so when with elite record we col Desert status with W and when the prorement case is complety approvered. So no more court, no more approvels al required we communicated ace status OK, but what happen if the sample One of the API?
+
+24:58
+Goes down OK will try to could say me PI three Times Save do you can sey online for this a do we could all three Times the same me p if the third time di APP I fells again add a work note to the.
+
+25:23
+The work note the programent case telling the user that the i is falling, this the name of the i and the status whatsapp and to the approvals the approver the previous approver iskan salled at it's time the same approver is asked to approve again. So there is a loop to automate.
+
+25:53
+Di APP I cooles and di approval process to the void errors. Okay so once all level of approver have a prover and the happy Eye don't fails we Haven auditional subflow that dicical is the same of before but this is the and status.
+
+26:20
+So when we are online twenty Seven verr communicating tues up di a status su wheret and more approved required and the problem cast in status closed complete on service now so by communicating EO to supp des should du the same su the complete the recordon supp okay and as U can se.
+
+26:48
+Dereard notification that we use for for One NPI we have on error on DPI busyd on the PI and the status that to wear sanding okay soul moving to the scratch job be web di delete attachment older than to Hell Mans but for now is not Active is required is there.
+
+27:21
+Get the get document number and PDF schedu del job dot retrives procument Kiss record dattar in aspecific stated that I farm not from gis working progress that doesn't have the document number and it calles supply to get document number and updates the Records okay.
+
+27:49
+Year we have old that we use for this use case.
+
+28:25
+OK basical this is DHTTP meted that to are using for arcade use case to use API Dan give gevelot to VPI su web the checktat integraty that is used to check what the data inservice if the data inserted on the record producer art correct by the check Button.
+
+28:50
+We have the delete record that is used in a we i that is used to check if we can a cancellar creditor debeat note if i delete, if i same error on on the PI will not delete the record. The never messages is plaid. We have the affetch SF to che that is used to.
+
+29:17
+Retrive cookie and Token for eich that we are using for Rich IPI calls and we have depeches document that is user for document recoverid from supp web get approvers that is user to recovery approvers and if your remember as a show di U before when we Great apurment case record there is the field.
+
+29:44
+Dason Approvert Jason so d se PI retrive the approwers and with feel it and with fill this field with the response of disk SPI get Cate currency that is used for currency recovery get the Direct and finanship to that are used on the form to retrive to retrive and check what the user ev inserted in Direct funership to field.
+
+30:16
+Ma è audible get reason code that is used and download on the form and Direct is the reason code get the tax code that is used to.
+
+30:39
+Retrive tax code the wave the search in Voice and also use to check what the use reve insert in in the table and the data correct dear retrived the R retrived and populated set status that is used to communicato sap de.
+
+31:05
+The point let me say of what we are doing on what is happing on the on the record. So i fan approw Val is done if ad Edition is completed and what Health give the get in West the tails that is usa to receive single in Voice the Tales get get up number and attachment at take the belling number and populight the coming number of the problement case and.
+
+31:37
+Last we have the groups, so note that the must important Group is this because other not long renews to axis the record producer. You must addit to d ssm user arcade Group.
+
+32:03
+Is for management credit and the beat not request then we Works the usercryter soul. The first One is only user. User with roll kanaxest is a mission of form Andrea user cretiria Associated to what the user cretirea Associated to the record producer.
+
+32:36
+Dire questo Sony user with this roll can create a problement case and the agent dot Ken manage task ok than we have roll dat ok dat Grant delition of the problement case.
+
+33:03
+Offre di di tette Finance dal Group or for ok offerte di di tetti Financial Group pay on aways bricated dear your borso an a semen Truth this no long eractive than I think is everything.
+
+33:53
+Question, Ciao, was it all Clear at functional stand point? Why we implement di this use case? Wechart Kimi mict starting from deary quest opening and and approval.
+
+34:23
+Before it's why we the side to switch inservice now the the application and.
+
+34:48
+And i to West obsoleto and not allowing to managed in a comprensive Wade and tire process so consideratezza what to we F nowing service now is the full process to open and approve e request and ulso automatically update SIP with the lot of data detar all put Inside the request.
+
+35:16
+Before the just steveral input not collected in a single way. So Memphis was not di the tool in witch the put everything and nether were d prooft spread over different activities. So first the harmonized.
+
+35:42
+Then they provide IT continuity on the with with the approval with my approval my task light Taste on on digital up picos peopolar oldso use to service now that so that's why we must the Dead and on the other side there wis oldso e stronger di integration with S be be before.
+
+36:10
+The Update just after di the Memphis integration sometharder information SP manualy. Ok Now Everything Assuruted True Service Now on SIP and ulso the way back beacs from SIP will res we give to the approverse to the requestion information liked billing document. This is the Final printing of the.
+
+36:40
+Acredit and debit note that will bish you do to the eternal customer. We are giving back the number and ultuded document di to the approverst before dei receive the with any mail or the look to to somewhere armonization.
+
+37:06
+Io Welcome Andrea. Have we also specified the last specias that we management regarding di error the flow and AX plane that we have a technical retrai Bah meby another importance slided me weekend age in in backup the Theater presentation is the workflow.
+
+37:32
+That Four workflows Lights that we create together that that to One glance allao the people thunderstand old happy eyed to becall that we trigger and huld to the error.
+
+37:59
+And itch time is cose down. We we we are rodding Works. Note to the procurement cast record sing that's di EPI falling and after Three Times is falling again we retries of the user is asked to approve again.
+
+38:23
+Adesso descrivere la just manshing that Assassin's Creed, the workflowslight it's to work too puts everything I'm in. This is light and weekend weekend show to them the West. After the Seven submit, Enza a will put ieri in the chat, but let's know where the Heart let's considera tu at dammi in the tech.
+
+38:52
+The once with the New flow some beece is a graphical view di of the wors are high copy to bastone. This is on the fist One dei picturet satly all the things. The chatten ether in the in the Form ONCE triggere triggered from the Form Action.
+
+39:22
+And when you FF safe this all the if you can open it image you can click the other One the first.
+
+39:59
+No easy to all. So Clear the fact that's the Eater's 7. It triggered several Times. Not i sate that we call di other set for i call because the cooking and the token. I'm in the Ideal set for the status di. Not too too cool to retrift the cooking and the token.
+
+40:25
+The the with the check status for the check status and World the other check OK and this is it has been clarifight this Spark that the most important IPI is Watch feature is it eater set this eater set that that that is analed speaking but the first man that we us for the check.
+
+41:01
+Inside the Form and at the submish e infatti soddisfami is the most important won that I have and with trigger several Times no for different reason i will repeat sempthing that you sede, but it's important to to to recall this disconcept that this.
+
+41:24
+To basically this is the wine were with collect old information Inside the form and we pass to sp shure Andrea mansion dew that's in the form there is shack potton that is the first time that to be trigger this intert setta because everything Inside the Form East cent to SP and wereceive back afteral errors consistency errors.
+
+41:53
+Ifawhoisfineuserisallouttosaveorstubmeatokayifterareerrorseriorsharddispladeanduserestfichtedidinformationinsidetherequestothervoicesblockokwhenwedothatstubmeetthisisthefirstiterthatcheckfromformthefederisedthe.at? T italianbet we will R.
+
+42:21
+When with click on supp meet with regier it again with the status see that is Steel check because just to be suer with perform again a consistence check before saving the information ether in service now or in SP if use no. If this check status sì ends in error.
+
+42:50
+Translating di Italian in English with there is the error Row S stay OK, you'll stay and the form and we wishw up in error ok son nothing wilmoof orward son no service, no request, no procurement case is state in SPE sono in in service now and nothing estate in SP. If all is going fine instadt we go in the other Row.
+
+43:19
+Save with status est we call again this One with a different status behouse in this way SIP store request and givas es HID surrestive back suppled moment request is Dave is in FP.
+
+43:48
+And we have ulso the you Nick ID that date generated a starting from this moment on World this will be the link for everything between SP and service now okay if all to in this cased we and in and error cat be this is the most important One that we have. We still remain on the form. Ok You SEE error Row.
+
+44:16
+Remain on the Fort becost in this moment we have not created yet any procurement case in service now and wish ud not create other wise we have an orfan procurement caste così we don't receive back DSIPED Foreign Alison because DPI failt e we will not aveni overchance torre trevits okay.
+
+44:46
+Than if is that this bloc here is going well with trigger the get approuverst that's fashure that's Andrea x plane to you that is base on the condition and on the data that the user putch Inside the request at AP is standing Arts the approuver's a priverter not static dei do really the pend on.
+
+45:14
+Teveral Information Put Inside the Form. This is fully management by SPOK with just recive a name of the people base on the logic and the implementy don't Dave side and base on how many approval levels we have for the request. Where is Steve approvers for Rich level consider death petitschu that Andrea.
+
+45:42
+Approval level South Dynamic su weekend have One approval level to approval levels, Tree approval levels and Swan a approval levels alminict by SP su days and toight how many approval levels to we have for this request and wechard Rolls among the One that wist that will being Church of the approval su weekend One approval level.
+
+46:09
+With the too groups in parallel approving it Frank zampol business control and sales manager Desert to groups that taken reside in the same level and ones at the list One person of this to groups will a proof bolf the level will be glost and we can move to the next One can su the work flow is Dynamic and the sens that bason what SP will Sant US.
+
+46:37
+The use case will ad up, the workflow will adapt it will all. So this get approvers is sorellini important ap così we don't get Foreign reason the approverse again we will lef e henriquest without the workflow started beacons we don't know at home stand the approval that's why way management error scenario.
+
+47:05
+The error scenario here is thing that the request will be created patting draft OK and draft status by Definition is not triggering any workflow. So you see that's we Creed after the error and request created in draft status we eft procurement case creatis all in this moments.
+
+47:32
+We can never this procurement case created, but Inside it we will log and error with the New field created by Andrea catch error with the last patch where with pots di the specific error that we receift the user will sì it in draft and in use that the list and error becoest approvers.
+
+48:02
+Very not identified or not because importante tu sei that's it's not only e technical issue deathmight happen years to Heaven error from the get approver so that is Frank sample we receive we are not able to Connect that IP what's in some case is it cut all so appen.
+
+48:29
+Get that the approvers are not define di NSP. Trust me, it's us not Sacha. Let's a remote possibility we su several request where approvers or not define and in this case when this is the case of the error it is displade to to the requestors e specific error message staying them.
+
+48:57
+Aproverser not the find contactless tape team bekos day have to update dei the tables something like that OK if it's created than you see last call that we do is header state Save we have the procurement case now number and winneed to send to SP.
+
+49:25
+The attachment. So this is most important part. So all in this moment if someone put's in the request and attachment we are standing to sp this attachment that's why we trigger last time the heater step because we pass this attachment to simplify the Life because now the attachment this stort.
+
+49:52
+Link to to the procurement case that we F finally created just the step before and always refrain sheating too DSIPAD we will pass to SIP is on this attachment OK and you see that ult and this case becosit faded I'm time we management di error can so di questa Steel remain in draft.
+
+50:22
+You SEE that's add they questa will be in working progress status only if all di AP Ice and saxespoli and saxespoli okay cosa risulse the branch on the right that is considering errors questions.
+
+51:02
+Andrea, this One important left adapteit let translate everything in English and let's pooting the indu document the technical document because we can not lose this information, ok?
+
+51:31
+Remember me were this is the stored is not in the technical document, okay Inside it di second One in English.
+
+51:57
+The post error messe management of the second will not explain that's spasicaly what Andrea Explainded welling di in the workflow OK with old retrial and old suffleted it's exatly britten what Andrea explaind if we are errors all along the process with the find the way out.
+
+52:29
+I had post put and post Touring di abrowell process and Hurt for minuted anything at do you need guist understation.
+
+52:56
+Do you case you feel let's sa i to Real you too to go to in the tells of this is case because if we will have a manancement you shout develox to them so pulita review everything can and if you have question share.
+
+53:22
+So with Andrea we can cadle another call, another Power to Ance questions. Okay, i will ultra mansion to tonya abod thats.
+
+53:48
+
+
+54:21
+I can't not event SEE in the chatted that's because i Creed the milling from the everything with a peer I'm food recording geist i hot get somewhere.
+
+55:18
+Ok.
+
+55:29
+
