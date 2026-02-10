@@ -1,10 +1,41 @@
 # ServiceNow-SAP Deletion Notification Analysis
 
 ## Question
-When a record is deleted in ServiceNow, is SAP being notified about the deletion, or is it only deleted from ServiceNow without notifying SAP?
+When a record (specifically a draft record) is deleted in ServiceNow, is SAP being notified about the deletion, or is it only deleted from ServiceNow without notifying SAP?
 
 ## Answer
-**SAP is NOT being notified about record deletions.** Based on the reviewed CDN dynamic approval process workflows, records are only being deleted/closed within ServiceNow without any outbound deletion callback to SAP.
+**SAP is NOT being notified about record deletions -- and for draft records, SAP never even knows the record existed in the first place.** Based on the reviewed CDN dynamic approval process workflows, records are only being deleted/closed within ServiceNow without any outbound deletion callback to SAP.
+
+---
+
+## Draft Record Deletion -- Specific Analysis
+
+The main flow ("CDN dynamic approval process v2") has a critical gate at **Step 1**:
+
+> **Wait For Procurement Case Condition** where State is **"Work in progress"** AND **Approvers JSON is not empty**
+
+A draft record sits in a **"Draft" state**, which means:
+
+1. **The flow never progresses past Step 1** -- it remains waiting for the state to change to "Work in progress"
+2. **No SAP/CDN API calls have been made** -- `CDN - fetchToken` and `CDN - setStatus v2` only execute in Steps 39+ (via the CDN Approval Steps subflows), which are far beyond the wait gate
+3. **SAP has no knowledge the draft record exists** -- since the approval process never started, no outbound communication was ever sent
+4. **When the draft is deleted**, the flow instance is simply cancelled/terminated at the wait step -- there is no cleanup call, no deletion event, and no SAP notification
+5. **Result**: The draft is removed from ServiceNow silently. SAP is completely unaware because it was never informed of the record's creation in the first place
+
+### Flow Execution Timeline for a Draft Record
+
+```
+Trigger: Procurement Case Created (types 112, 111)
+    |
+    v
+Step 1: Wait For Condition (State = "Work in progress" AND Approvers JSON not empty)
+    |
+    |--- Record is in "Draft" state --> Flow BLOCKED here, waiting...
+    |
+    |--- User deletes the draft record --> Flow instance CANCELLED
+    |
+    X  (No SAP communication ever occurred)
+```
 
 ---
 
@@ -83,6 +114,12 @@ When a record is deleted in ServiceNow:
 - SAP retains the record in its last known state (e.g., pending approval, approved, rejected)
 - This creates an **out-of-sync state** between the two systems
 
+### Draft Records -- No Gap Exists (But No Notification Either)
+When a **draft** record is deleted:
+- SAP was never informed of the record (flow blocked at Step 1 wait condition)
+- No sync gap exists because SAP has no corresponding record
+- However, if SAP **should** be notified about draft deletions for audit/tracking purposes, that logic does not exist today
+
 ---
 
 ## Notifications That DO Exist
@@ -116,3 +153,5 @@ To ensure SAP is notified when a record is deleted in ServiceNow, the following 
 - Should the deletion notification use the same `CDN - setStatus v2` action with a specific status value (e.g., "deleted"), or does SAP expose a separate deletion API?
 - Are there other flows or Business Rules (not shown in the screenshots) that might handle deletion scenarios?
 - Is there a specific Procurement Case table Business Rule that might already handle this at the database level?
+- For draft records specifically: should SAP be notified about draft creation/deletion, or is it acceptable that SAP only learns about records once they reach "Work in progress"?
+- Are there any other record states (beyond draft) where deletion can occur before SAP has been contacted?
