@@ -1,0 +1,2547 @@
+
+HTML template
+
+<div class='summary-details-container'>
+  <div class='detail-box grid3-section'>
+    <div class='info'>
+      <span class='info-label'>Status</span>
+      <span class='info-value'>{{data.state}}</span>
+    </div>
+  </div>
+
+  <div class='request-detail-box'>
+    <div class='tab-container'>
+      <ul class='nav nav-tabs' role='tablist'>
+        <li role='presentation' class='active'><button data-target='#details' aria-controls='details' role='tab' data-toggle='tab' ng-click="setTab('details')">Request details</button></li>
+        <li role='presentation'><button data-target='#comments' aria-controls='comments' role='tab' data-toggle='tab' ng-click="setTab('comments')">Comments</button></li>
+      </ul>
+
+      <div class='tab-content'>
+
+        <div role='tabpanel' class='tab-pane' ng-class="data.tab == 'details' ? 'active' : ''" id="details">
+          <div class='pane-content'>
+            <div class='section-info'>
+
+
+              <div class="form-container">
+                <div class='grid3-section'>
+                  <div class='info'>
+                    <span class='info-label'>Reason</span>
+                    <input type='text' id='reason' class='form-control info-value' ng-model='c.data.reason' ng-readonly="c.data.edit_form == 'false'"/>
+                  </div>
+                  <div class='info'>
+                    <span class='info-label'>Type</span>
+                    <input type='text' id='type' class='form-control info-value' ng-model='c.data.type' ng-readonly="c.data.edit_form == 'false'"/>
+                  </div>
+                  <div class='info'>
+                    <div class="form-group">
+                      <span class='info-label'>Direct ship-to</span>
+                      <input type='text' id='dir_customer' class='form-control info-value' ng-model='c.data.dir_ship_to' ng-readonly="c.data.edit_form == 'false'" ng-change="c.set_tax()" />
+                      <button type="button" class="btn-search" data-toggle="modal" data-target="#searchModal" ng-disabled="c.data.edit_form == 'false'">
+                        <img src="icon-search-hover.svg" alt="">
+                      </button>
+                    </div>
+                  </div>
+                  <div class='info'>
+                    <div class="form-group">
+                      <span class='info-label'>Final ship-to</span>
+                      <input type='text' id='fnl_customer' class='form-control info-value'  ng-model='c.data.final_customer' ng-readonly="c.data.edit_form == 'false'"/>
+                      <button type="button" class="btn-search" data-toggle="modal" data-target="#searchModal1" ng-disabled="c.data.edit_form == 'false'"> <img src="icon-search-hover.svg" alt="" role="presentation"> </button>
+                    </div>
+                  </div>
+                  <div class='info'>
+                    <span class='info-label'>Ccy</span>
+                    <input type='text' id='cur' class='form-control info-value' ng-model='c.data.currency' ng-readonly="c.data.edit_form == 'false'"/>
+                  </div>
+                  <div class='info'>
+                    <span class='info-label'>Tax</span>
+                    <input type='text'  id="tax" class='form-control info-value' ng-model="c.data.tax" ng-readonly="c.data.edit_form == 'false'">
+                  </div>  
+                 
+                  <div class='info'>
+                    <span class='info-label'>Header text</span>
+                    <input type='text' id='cd_db' class='form-control info-value' ng-model='c.data.headerText'readonly/>
+                  </div>
+                 
+
+
+
+                  <div class='info'>
+                    <span class='info-label'>CD/Dn Amount</span>
+                    <input type='text' id='cd_db' class='form-control info-value' ng-model='c.data.cd_db_amt'readonly/>
+                  </div>
+                 
+                    <div class='info'>
+                    <span class='info-label'>Billing Document NR</span>
+                    <input type='text' id='cd_db' class='form-control info-value' ng-model='c.data.document_nr'readonly/>
+                  </div>
+                 
+                </div>
+               
+                <br>
+               
+                   <div class='info'>
+                    <span class='info-label'>Note</span>
+                    <input type='text' id='cd_db' class='form-control info-value' ng-model='c.data.note'readonly/>
+                  </div>
+
+              </div>
+
+
+              <div class="table-container">
+                <div class="upload-wrapper">
+
+                  <span class="upload-info">If you want to upload invoices an Excel file, please use the mandatory template.
+                    <br>
+                    The template can be downloaded from <a id="export_attach" ng-click="exportAttachment()" ng-disabled="c.data.edit_form == 'false'">this link</a>.
+                  </span>
+
+                  <button class="btn btn-primary"  ng-click="openModalAttachment('cdn_import_attach_my_request')" ng-disabled="c.data.edit_form == 'false'">
+                    <span>Mass upload</span>
+                    <i class="glyphicon glyphicon-paperclip"></i>
+                  </button>
+
+                </div>
+                <div class="button-wrapper">
+                  <button id="add-row-button" class="btn btn-secondary-darker" ng-click="c.addrow();c.showRow()" ng-disabled="c.data.edit_form == 'false'" >
+                    <img src="add-btn.svg" alt="" aria-hidden="true">
+                    <span>Add row</span>
+                  </button>
+                  <button id="add-new-price" class="btn btn-secondary-darker" data-toggle="modal" data-target="#searchPrice" ng-disabled="c.data.edit_form == 'false'" >
+                    <img src="price-icon.svg" alt="" aria-hidden="true">
+                    <span>Add new price</span>
+                  </button>
+                </div>
+                <!-- End Edit case -->
+                <div class="table-responsive">
+                  <table class="table" id="cdn-table">
+                    <thead>
+                      <tr>
+                        <!-- Edit case -->
+                        <th data-th="Actions"></th>
+                        <!-- End Edit case -->
+                        <th data-th="Index"><span class="th-title">#</span></th>
+                        <th><span class="th-title">Invoice</span></th>
+                        <th><span class="th-title">Item</span></th>
+                        <th><span class="th-title">Product</span></th>
+                        <th><span class="th-title">Quantity</span></th>
+                        <th><span class="th-title">Price</span></th>
+                        <th><span class="th-title">Amt</span></th>
+                        <th class="unitary_price-column" ng-hide="{{data.hideColumns}}"><span class="th-title">N_Price</span></th>
+                        <th  ng-hide="{{data.hideColumns}}"><span class="th-title">N_Amount</span></th>
+                        <th  ng-hide="{{data.hideColumns}}"><span class="th-title">CN/CD Amount</span></th>
+                        <th><span class="th-title">Final</span></th>
+                      </tr>
+                    </thead>
+
+                    <tbody>
+                      <tr ng-repeat="invoice in invoices track by $index" ng-if="c.data.show_row">
+
+                        <!-- Edit case -->
+                        <td data-th="Actions">
+                          <button type="button" class="btn btn-secondary-darker" aria-label="Delete row"  ng-click="c.remove($index)" ng-disabled="c.data.edit_form == 'false'">
+                            <img src="delete-btn.svg" alt="" aria-hidden="true" role="presentation">
+                          </button>
+                        </td>
+                        <!-- End Edit case -->
+                        <td class="number-column"><input type="text" class="form-control number-input" ng-model="$index" readonly></td>
+                        <td>
+                          <div class="form-group">
+                            <input type="text" id="invotest" class="form-control invoice-input" ng-model="invoice.invoices"  Placeholder="Insert Value..." ng-readonly="c.data.edit_form == 'false'" ng-change="c.set_tax()"> <button type="button" class="btn-search" data-toggle="modal" data-target="#searchModal2" ng-disabled="c.data.edit_form == 'false'"><img src="icon-search-hover.svg" alt=""></button>
+                          </div>
+                        </td>
+                        <td><input type="text" class="form-control item-input" ng-model="invoice.item" Placeholder="Insert Value..." ng-readonly="c.data.edit_form == 'false'"></td>
+                        <td>
+                          <div class="form-group">
+                            <input type="text" class="form-control product-input" ng-model="invoice.products"  Placeholder="Insert Value..." ng-readonly="c.data.edit_form == 'false'"> <button type="button" class="btn-search" data-toggle="modal" data-target="#searchProd" ng-disabled="c.data.edit_form == 'false'"><img src="icon-search-hover.svg" alt=""></button>
+                          </div>
+                        </td>
+                        <td class="quantity-column"><input type="text" class="form-control quantity-input" ng-change="c.calculate_amount(invoice)" ng-model="invoice.quantity" Placeholder="Insert Value..." ng-readonly="c.data.edit_form == 'false'"></td>
+                        <td class="price-column"><input type="text" class="form-control price-input" ng-change="c.calculate_amount(invoice)" ng-model="invoice.price"  Placeholder="Insert Value..." ng-readonly="c.data.edit_form == 'false'"></td>
+                        <td class="amount-column"><input type="text" class="form-control amount-input"  ng-model="invoice.amount"  ng-readonly="true" ng-class="{'red-color': {{data.setRedColor}}}"></td>
+                        <td class="unitary_price-column" ng-hide="{{data.hideColumns}}"><input type="text" class="form-control unitary_price-input" ng-model="invoice.unitary_price" ng-blur="c.calculate_adj_amount(invoice)"  Placeholder="Insert Value..." ng-readonly="c.data.edit_form == 'false'"></td>
+                        <td class="n-amount-column" ng-hide="{{data.hideColumns}}"><input type="text" class="form-control n-amount-input" ng-model="invoice.new_amount" ng-model="invoice.new_amount" ng-readonly="true"></td>
+                        <td class="adjusted_amount-column" ng-hide="{{data.hideColumns}}"><input type="text" class="form-control adjusted_amount-input" ng-model="invoice.adj_amt" ng-model="invoice.adj_amt" ng-readonly="true" ng-class="{'red-color': {{data.cndnAmountRedColor}}}"></td>
+                        <td class="adjusted_amount-column"><input type="text" class="form-control adjusted_amount-input" ng-model="invoice.final" ng-readonly="true"></td>
+                      </tr>
+                    </tbody>
+                  </table>
+                  <div id="searchWidget">
+                    <!-- modal from table -->
+                    <div class="modal fade modal-big" id="searchModal2" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel2">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h2 class="modal-title" id="searchModalLabel2">Select Invoices</h2>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">×</span> </button>
+                          </div>
+
+                          <div class="modal-body">
+                            <div class="container-fluid">
+                              <!-- First row: Customer ID and Credit Segment -->
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <label for="searchItem" class="field-label">Invoice from</label>
+                                  <input type="text" class="form-control" id="invo_from" placeholder="Type a Invoice No.">
+                                  <option value="Type a Invoice No." disabled selected></option>
+                                </div>  
+
+                                <div class="col-md-6">
+                                  <label for="Tinvo" class="field-label">Invoice to</label>
+                                  <input type="text" class="form-control" id="invo_to" placeholder="Type a Invoice No.">
+                                  <option value="Insert product" disabled selected></option>
+                                </div>
+                              </div>
+
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <label for="Fdate" class="field-label">From Date</label>
+                                  <input type="datetime-local" class="form-control" id="from_date" placeholder="Insert product">
+                                  <option value="Insert product" disabled selected></option>
+                                </div>
+
+                                <div class="col-md-6">
+                                  <label for="Tdate" class="field-label">To Date</label>
+                                  <input type="datetime-local" class="form-control" id="to_date" placeholder="Type a Invoice No.">
+                                  <option value="Type a Invoice No." disabled selected></option>
+                                </div>
+                              </div>
+
+                              <!-- Second row: Search Item and Country -->
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <label for="searchItem" class="field-label">Product</label>
+                                  <input type="text" class="form-control" id="prod_from" placeholder="Insert product">
+                                  <option value="Type a Invoice No." disabled selected></option>
+                                </div>
+                              </div>
+                              <button type="button" class="btn btn-default search-button-modal" ng-click="c.searchInvoice()">Search</button>
+                            </div>
+
+
+                          </div>
+                          <div class="modal-selection">
+                            <div class="item-container">
+                              <div class="item-container-header">
+                                <div class="form-group">
+                                  <input type="checkbox" id="selectAll" class="form-control" ng-click="c.checkAll()">
+                                  <label for="selectAll">Select all</label>
+                                </div>
+                              </div>
+
+                              <div class="item-container-body" >
+
+                                <div class="item-wrapper" ng-repeat="invoice in c.data.objJson track by $index">
+                                  <label for="checkSelect_{{invoice.invoices}}" class="sr-only">Select invoice</label>
+                                  <input type="checkbox" id="checkSelect_{{invoice.invoices}}" class="form-control checkbox-input"  ng-click="c.addCountCurr(invoice.invoices,invoice.item,invoice.products,invoice.quantity,invoice.price)" >
+
+
+                                  <div class="item-banner">
+                                    <div class="banner-body">
+
+
+                                      <div class="info-item">
+                                        <span class="info-title">Invoice Number</span>
+                                        <span class="info-desc">{{invoice.invoices}}</span>
+                                      </div>
+
+                                      <div class="info-item">
+                                        <span class="info-title">Invoice Item</span>
+                                        <span class="info-desc">{{invoice.item}}</span>
+                                      </div>
+
+                                      <div class="info-item">
+                                        <span class="info-title">Product</span>
+                                        <span class="info-desc">{{invoice.products}}</span>
+                                      </div>
+
+                                      <div class="info-item">
+                                        <span class="info-title">Quantity</span>
+                                        <span class="info-desc">{{invoice.quantity}}</span>
+                                      </div>
+
+                                      <div class="info-item">
+                                        <span class="info-title">Price</span>
+                                        <span class="info-desc">{{invoice.price}}</span>
+                                      </div>
+                                    </div>
+
+                                  </div>
+                                </div>
+
+                              </div>
+
+
+                            </div>
+                            <button type="button" class="btn btn-primary add-selected-button" ng-click="c.addMultipleRows('add','')">Add selected</button>
+                          </div>
+
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="modal fade modal-big" id="searchProd" tabindex="-1" role="dialog" aria-labelledby="searchModalProd">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h2 class="modal-title" id="searchModalProd">Select product</h2>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                              <span aria-hidden="true">×</span>
+                            </button>
+                          </div>
+
+                          <div class="modal-body">
+                            <div class="container-fluid">
+                              <!-- First row: Customer ID and Credit Segment -->
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <label for="customerId" class="field-label">Product Name</label>
+                                  <input type="text" class="form-control" id="prod_name" ng-model="c.prod_name" placeholder="Insert product name" ng-change="c.getFilterValue()">
+                                  <option value="Insert product name" disabled selected></option>
+                                </div>  
+
+                                <div class="col-md-6">
+                                  <label for="creditSegment" class="field-label">Product Description</label>
+                                  <input class="form-control" id="prod_desc" ng-model="c.prod_desc" placeholder="Insert product description" >
+                                  <option value="Insert product description" disabled selected></option>
+                                </div>
+                              </div>
+
+                            </div>        
+                            <button type="button" class="btn btn-default search-button-modal" ng-click="c.getProd()">Search</button>  
+                          </div>
+
+                          <div class="modal-search-results">
+                            <div ng-repeat="item in c.data.objJson1 track by $index" class="search-result-item">
+                              <div class="modal-search-result__title" >
+
+                                <div class="modal-search-result__description" ng-click = "c.getSelectedRecordX(item);" id = "tabledata">
+                                  <span>{{item}}</span>
+                                </div>
+                              </div>
+
+                            </div>
+                          </div>
+
+                        </div>
+                      </div>  
+                    </div>
+                    <div class="modal fade modal-big" id="searchPrice" tabindex="-1" role="dialog" aria-labelledby="searchModalPrice">
+                      <div class="modal-dialog" role="document">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h2 class="modal-title" id="searchModalPrice">Insert New Price Massively</h2>
+                            <button type="button" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">×</span> </button>
+                          </div>
+
+                          <div class="modal-body">
+                            <div class="container-fluid">
+                              <!-- First row: Customer ID and Credit Segment -->
+                              <div class="row">
+                                <div class="col-md-6">
+                                  <label for="newprice" class="field-label">New price</label>
+                                  <input type="text" id="newprice" class="form-control newPrice-input" ng-model="newprice.newPrice" placeholder="Insert new price">
+                                </div>
+                              </div>
+                            </div>
+                            <button type="button" class="btn btn-default search-button-modal" ng-click="c.getNewPrice('')">Insert</button>
+                          </div>
+
+                        </div>        
+                      </div>
+                    </div>
+
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+        </div>
+        <div role='tabpanel' class='tab-pane' ng-class="data.tab == 'comments' ? 'active' : ''" id="comments">
+          <sp-widget widget="data.chat"></sp-widget>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+<input type='text' class="form-control" id='u_html_json'  ng-model='data.u_html_json' ng-if="false"/>
+<!-- Modal direct ship to -->
+<div class="modal fade modal-big" id="searchModal" tabindex="-1" role="dialog" aria-labelledby="searchModalLabel" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="searchModalLabel">Select direct ship-to</h2>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">×</span> </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="container-fluid">
+          <!-- First row: Customer ID and Credit Segment -->
+          <div class="row">
+            <div class="col-md-6">
+              <label for="customerId" class="field-label">Customer ID</label>
+
+              <input type="text" class="form-control" id="customerId" placeholder="Type full or partial Customer ID" ng-model="c.customerID" ng-change="c.getFilterValue()">
+              <option value="" disabled selected></option>
+              <option ng-repeat="custID in item.id" value = "{{customerID}}">
+                {{customerID}}
+              </option>
+            </div>  
+
+            <div class="col-md-6">
+              <label for="creditSegment" class="field-label">Name</label>
+              <input class="form-control" id="name" ng-model="c.name" placeholder="Type customer name">
+              <option value="" disabled selected></option>
+              <option ng-repeat="custName in item.name" value ="{{customer_name}}">
+                {{customer_name}}
+              </option>
+            </div>
+          </div>
+
+          <!-- Second row: Search Item and Country -->
+          <div class="row">
+            <div class="col-md-6">
+              <label for="searchItem" class="field-label">Invoice No.</label>
+              <input type="text" class="form-control w-50" id="searchItem" placeholder="Type a Invoice No." ng-model="c.searchItem">
+
+              <option value="" disabled selected></option>
+              <option ng-repeat="invoice in item.invoice" value ="{{invoice}}">
+                {{invoice}}
+              </option>
+            </div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-default search-button-modal" ng-click="c.getDirectShipTo()">Search</button>
+      </div>
+
+      <div class="modal-search-results">
+        <div ng-repeat="item in c.data.objJson track by $index" class="search-result-item">
+          <div class="modal-search-result__title" >
+
+            <div class="modal-search-result__description" ng-click = "c.getSelectedRecord(item);" id = "tabledata">
+              <span>{{item}}</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal Final ship to -->
+<div class="modal fade modal-big" id="searchModal1" tabindex="-1" role="dialog" aria-labelledby="searchModal1Label" aria-hidden="true">
+  <div class="modal-dialog" role="document">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h2 class="modal-title" id="searchModal1Label">Select final ship-to</h2>
+        <button type="button" class="close" data-dismiss="modal" aria-label="Close"> <span aria-hidden="true">×</span> </button>
+      </div>
+
+      <div class="modal-body">
+        <div class="container-fluid">
+          <!-- First row: Customer ID and Credit Segment -->
+          <div class="row">
+            <div class="col-md-6">
+              <label for="customerId" class="field-label">Customer ID</label>
+
+              <input type="text" class="form-control" id="customerId" placeholder="Type full or partial Customer ID" ng-model="c.customerID" ng-change="c.getFilterValue()">
+              <option value="" disabled selected></option>
+              <option ng-repeat="custID in item.id" value = "{{customerID}}">
+                {{customerID}}
+              </option>
+            </div>  
+
+
+            <div class="col-md-6">
+              <label for="creditSegment" class="field-label">Name</label>
+              <input class="form-control" id="name" ng-model="c.name" placeholder="Type customer name">
+              <option value="" disabled selected></option>
+              <option ng-repeat="custName in item.name" value ="{{customer_name}}">
+                {{customer_name}}
+              </option>
+            </div>
+          </div>
+
+          <!-- Second row: Search Item and Country -->
+          <div class="row">
+            <div class="col-md-6">
+              <label for="searchItem" class="field-label">Invoice No.</label>
+              <input type="text" class="form-control w-50" id="invoiceNR" placeholder="Type a Invoice No." ng-model="c.invoiceNR">
+
+              <option value="" disabled selected></option>
+              <option ng-repeat="invoice in item.invoice" value ="{{invoice}}">
+                {{invoice}}
+              </option>
+            </div>
+          </div>
+
+
+        </div>
+        <button type="button" class="btn btn-default search-button-modal" ng-click="c.getFinalShipTo()">Search</button>
+      </div>
+
+      <div class="modal-search-results">
+        <div ng-repeat="item in c.data.objJson track by $index" class="search-result-item">
+          <div class="modal-search-result__title" >
+
+            <div class="modal-search-result__description" ng-click = "c.getSelectedRecord2(item);" id = "tabledata">
+              <span>{{item}}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+
+CSS
+
+  .summary-details-container{
+    display: flex;
+    flex-direction: column;
+    gap: 24px;
+    margin-top: 24px;
+
+    .detail-box{
+      border: 1px solid #cad1dd;
+      border-radius:8px;
+      box-shadow: 0 4px 16px 0 rgba(3, 35, 75, 0.08);
+      background-color: #fcfcfd;
+      padding: 16px 24px;
+
+      @media (max-width: 767.8px){
+        padding: 16px;
+      }
+
+      .info{
+        display: flex;
+        flex-direction: column;
+        gap: 2px;
+
+        .info-label{
+          font-size: 12px;
+          font-weight: 600;
+          line-height: 19.2px;
+          color: #000;
+        }
+
+        .info-badge{
+          background-color: #03234b;
+          border-radius: 40px;
+          padding: 3px 12px;
+          color: #fff;
+          font-size: 12px;
+          line-height: 18px;
+          letter-spacing: 1px;
+          font-weight: 600;
+          text-transform: uppercase;
+          width: max-content;
+        }
+      }
+    }
+
+    .request-detail-box{
+      border: 1px solid #cad1dd;
+      border-radius:8px;
+      box-shadow: 0 4px 16px 0 rgba(3, 35, 75, 0.08);
+      background-color: #fcfcfd;
+      padding: 16px 24px;
+      min-height: calc(100vh - 250px);
+      max-height: calc(100vh - 250px);
+
+      @media (max-width: 767.8px){
+        padding: 16px;
+      }
+
+      .tab-container{
+
+        .nav-tabs{
+          border-bottom: 2px solid rgba(182, 192, 205, 0.45);
+
+          li{
+            button{
+              background: unset;
+              border: unset;
+              padding: 10px 24px;
+              font-size: 14px;
+              font-weight: 700;
+              line-height: 21px;
+              letter-spacing: 1.4px;
+              text-transform: uppercase;
+              color: #707e8f;
+
+              @media(max-width: 419.8px){
+                padding: 12px 8px;
+              }
+            }
+
+            &.active{
+              border-bottom: 4px solid #03234b;
+
+              button{
+                color: #03234b;
+              }
+            }
+
+          }
+        }
+
+        .tab-content{
+          @media(min-width: 992px){
+            max-height: calc(100vh - 331px);
+            overflow-y: auto;
+          }
+
+          .pane-content{
+            margin-top: 24px;
+            display:flex;
+            flex-direction: column;
+
+            .summary-container{
+              gap: 16px;
+              margin-bottom: 32px;
+
+              .summary-item{
+                display: flex;
+                flex-direction: column;
+
+                .summary-title{
+                  color: #000;
+                  font-size: 12px;
+                  line-height: 19.2px;
+                  font-weight: 400;
+                }
+
+                .summary-desc{
+                  color: #414449;
+                  font-size: 16px;
+                  line-height: 24px;
+                  font-weight: 600;
+                }
+              }
+            }
+
+            .table-container{
+
+              .button-wrapper{
+                display: flex;
+                align-items: center;
+                gap: 32px;
+                margin-bottom: 16px;
+              }
+
+              .upload-wrapper{
+                display: flex;
+                align-items: center;
+                justify-content: space-between;
+                gap: 24px;
+                margin-bottom: 24px;
+
+                .upload-info{
+                  font-size: 14px;
+                  line-height: 22.4px;
+                  font-weight: 400;
+                  color: #414449;
+
+                  a{
+                    font-weight: 600;
+                    color: #03234b;
+                  }
+                }
+
+              }
+              .table-responsive{
+                overflow: auto;
+                border: 1px solid rgba(182,192,205,0.45);
+                border-bottom: unset;
+                max-height: calc(100vh - 550px);
+                @media (max-width: 1099.8px){
+                  max-height: 275px;
+                }
+
+                .table{
+                  margin: 0;
+
+                  thead{
+                    position: sticky;
+                    top:0;
+                    z-index: 2;
+
+                    tr{
+                      th{
+                        border: unset !important;
+                        background-color: #BDD6F4 !important;
+                        padding: 8px 16px;
+                        vertical-align: middle;
+
+                        &[data-th="Index"]{
+                          max-width: 65px;
+                          width: 65px;
+                          text-align:center;
+                        }
+
+                        &[data-th="Actions"]{
+                          max-width: 50px;
+                          width: 50px;
+                          text-align:center;
+                        }
+
+                        .th-title{
+                          color: #000;
+                          font-size: 14px;
+                          line-height: 22.4px;
+                          font-weight: 600;
+                          white-space: nowrap;
+                        }
+                      }
+                    }
+                  }
+
+                  tbody{
+                    tr{
+                      td{
+                        padding: 8px 16px;
+                        height: 56px;
+                        vertical-align: middle;
+                        border-bottom: 1px solid rgba(182,192,205,0.45);
+
+                        &[data-th="Index"]{
+                          max-width: 65px;
+                          width: 65px;
+                          text-align: center;
+                        }
+
+                        &[data-th="Actions"]{
+                          max-width: 50px;
+                          width: 50px;
+                          text-align: center;
+                        }
+
+                        .td-text{
+                          color: #000;
+                          font-size: 14px;
+                          line-height: 22.4px;
+                          font-weight: 400;
+                          white-space: nowrap;
+                        }
+
+                        .form-group{
+                          position: relative;
+                          margin: 0 !important;
+
+                          .form-control{
+                            padding-right: 30px;
+                          }
+
+                          .btn-search {
+                            position: absolute;
+                            bottom: .7rem;
+                            right: .8rem;
+                            z-index: 1;
+                            background-color: unset;
+                            padding: 0 !important;
+                            border: unset !important;
+
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+
+              .btn-secondary-darker{
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                padding: 0 !important;
+                background-color: unset;
+                border: unset;
+                border-radius: 4px;
+                height: auto !important;
+
+                &#add-row-button{
+                  img{
+                    width: 20px;
+                  }
+                }
+              }
+
+
+              /* Define the scrollbar style */
+              .table-responsive::-webkit-scrollbar {
+                width: 24px;
+                height: 24px;
+              }
+
+              /* Define the thumb style */
+              .table-responsive::-webkit-scrollbar-thumb:horizontal {
+                background: #03234b;
+                border-radius: 6px;
+                border-top: 10px solid #fff;
+                border-bottom: 10px solid #fff;
+              }
+
+              .table-responsive::-webkit-scrollbar-thumb:vertical {
+                background: #03234b;
+                border-radius: 6px;
+                border-left: 10px solid #fff;
+                border-right: 10px solid #fff;
+              }
+
+              /* Style the beginning section of the scrollbar track */
+              .table-responsive::-webkit-scrollbar-track-piece:horizontal:start {
+                background-color: #cad1dd;
+                border-top: 10px solid #fff;
+                border-bottom: 10px solid #fff;
+                width: 30px;
+                height: 24px;
+              }
+
+              /* Style the end section of the scrollbar track */
+              .table-responsive::-webkit-scrollbar-track-piece:horizontal:end {
+                background-color: #cad1dd;
+                border-top: 10px solid #fff;
+                border-bottom: 10px solid #fff;
+                width: 30px;
+                height: 24px;
+              }
+
+              /* Define the button style */
+              .table-responsive::-webkit-scrollbar-button {
+                background-color: #fff;
+                background-repeat: no-repeat;  
+                background-size: 24px;
+                width: 30px;
+                height: 24px;
+                border-radius: 4px;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:start:decrement {
+                background-image: url("arrow-prev.svg");  
+                background-position: center -1px;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:start:increment {
+                display: none;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:end:decrement {
+                display: none;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:end:increment {
+                background-image: url("arrow-next.svg");
+                background-position: center -1px;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:vertical:start:decrement {
+                background-image: url("arrow-up.svg");  
+                background-position: center -1px;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:vertical:start:increment {
+                display: none;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:vertical:end:decrement {
+                display: none;
+              }
+
+              .table-responsive::-webkit-scrollbar-button:vertical:end:increment {
+                background-image: url("arrow-down.svg");
+                background-position: center -1px;
+              }
+
+              /* Define the button style when being hovered over */
+              .table-responsive::-webkit-scrollbar-button:hover {
+                background-color: rgba(60, 182, 230, .1);
+              }
+            }
+
+            .section-info{
+              padding-right: 16px;
+
+              .form-container{
+                margin-bottom: 32px;
+
+                .info{
+                  display: flex;
+                  flex-direction: column;
+
+                  .info-label{
+                    font-size: 12px;
+                    line-height: 19.2px;
+                    font-weight: 400;
+                    color: #000
+                  }
+
+                  .form-group{
+                    position: relative;
+                    margin: 0 !important;
+
+                    .form-control{
+                      padding-right: 30px;
+                    }
+
+                    .btn-search {
+                      position: absolute;
+                      bottom: .7rem;
+                      right: .8rem;
+                      z-index: 1;
+                      background-color: unset;
+                      padding: 0 !important;
+                      border: unset !important;
+
+                    }
+                  }
+
+                  .form-control{
+                    &[readonly="readonly"],
+                    &[readonly]{
+                      border: unset;
+                      background-color: transparent;
+                      padding: 0;
+                      box-shadow: unset !important;
+                      height: auto !important;
+                      font-size: 16px !important;
+                      line-height: 24px !important;
+                      font-weight: 600 !important;
+                      color: #414449 !important;
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+
+      .grid3-section{
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 24px;
+
+        @media (max-width: 991.8px){
+          grid-template-columns: repeat(1, 1fr);
+        }
+      }
+    }
+  }
+
+  [accessibility] input:focus {
+    box-shadow: unset !important;
+    outline: .4rem solid transparent;
+    border-color: #000 !important;
+  }
+
+  .form-control:focus{
+    box-shadow: unset !important;
+    outline: .4rem solid transparent;
+    border-color: #000 !important;
+  }
+  #searchModal,
+  #searchModal1{
+
+    .modal-content{
+      padding: 0 !important;
+
+      .modal-header{
+        padding: 40px 32px 0 !important;
+        margin: 0 !important;
+
+        .modal-title{
+          font-size: 24px;
+          line-height: 33.6px;
+          font-weight: 600;
+          color: #03234b;
+        }
+
+        .close{
+          position: absolute;
+          top: 16px;
+          right: 16px;
+        }
+      }
+
+     .modal-body {
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end; /* Align items to the end */
+
+
+     
+
+      .container-fluid{
+        gap: unset !important;
+        margin:0;
+      }
+       .search-button-modal{
+        margin-left:auto;
+      }
+    }
+     
+
+    .modal-selection{
+      padding-bottom: 16px;
+      margin-top: 16px;
+
+      .item-container{
+        background-color: #f6f7f9;
+        height: 354px;
+        overflow-y: auto;
+
+        .item-container-header{
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          background-color: #f6f7f9;
+          padding:16px 24px;
+        }
+
+        .item-container-body{
+          padding:0 24px;
+
+          .item-wrapper{
+            display: flex;
+            align-items: center;
+            gap: 16px;
+
+            & + .item-wrapper{
+              margin-top: 16px;
+            }
+
+            &:last-of-type{
+              margin-bottom: 16px;
+            }
+
+            input[type=checkbox]{
+              flex: 0 0 auto;
+            }
+
+            .item-banner{
+              width: 100%;
+              border-radius: 8px;
+              border: 1px solid rgba(182,192,205,0.45);
+              box-shadow: 0 4px 16px 9 rgba(3,35,75,0.08);
+
+              .banner-header{
+                background-color: #eceef4;
+                padding: 4px 8px;
+                border-radius: 8px 8px 0 0;
+
+                .banner-title{
+                  font-size: 14px;
+                  line-height: 22.4px;
+                  font-weight: 600;
+                  color: #000;
+                }
+              }
+
+              .banner-body{
+                display: grid;
+                grid-template-columns: repeat(5, 1fr); /* Adjust column widths as needed */
+                gap: 16px;
+                background-color: #fcfcfd;
+                border-radius: 0 0 8px 8px;
+                padding: 8px 16px;
+
+                .info-item{
+                  display: flex;
+                  flex-direction: column;
+
+                  .info-title{
+                    font-size: 12px;
+                    line-height: 19.2px;
+                    font-weight: 700;
+                    color: #000;
+                  }
+
+                  .info-desc{
+                    font-size: 16px;
+                    line-height: 24px;
+                    font-weight: 400;
+                    color: #000;
+                  }
+                }
+              }
+
+            }
+          }
+        }
+
+        .form-group{
+          padding-top: 0 !important;
+        }
+
+        input.form-control[type="checkbox"]{
+          position: relative;
+          display: inline-block;
+          vertical-align: middle;
+          appearance: none;
+          width: 1.8rem !important;
+          height: 1.8rem !important;
+          border-color: #CDD3DB !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border: .2rem solid #03234b !important;
+          background-color: transparent !important;
+          border-radius: .3rem !important;
+
+          &:checked {
+            background-color: #03234b !important;
+            border-color: #03234b !important;
+          }
+
+          &:checked:after {
+            content: "";
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background-image: url("data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9JzMwMHB4JyB3aWR0aD0nMzAwcHgnICBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgdmVyc2lvbj0iMS4xIiB4PSIwcHgiIHk9IjBweCI+PHRpdGxlPmljb25fYnlfUG9zaGx5YWtvdjEwPC90aXRsZT48ZGVzYz5DcmVhdGVkIHdpdGggU2tldGNoLjwvZGVzYz48ZyBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyBmaWxsPSIjZmZmZmZmIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNi4wMDAwMDAsIDI2LjAwMDAwMCkiPjxwYXRoIGQ9Ik0xNy45OTk5ODc4LDMyLjQgTDEwLjk5OTk4NzgsMjUuNCBDMTAuMjI2Nzg5MSwyNC42MjY4MDE0IDguOTczMTg2NDQsMjQuNjI2ODAxNCA4LjE5OTk4Nzc5LDI1LjQgTDguMTk5OTg3NzksMjUuNCBDNy40MjY3ODkxNCwyNi4xNzMxOTg2IDcuNDI2Nzg5MTQsMjcuNDI2ODAxNCA4LjE5OTk4Nzc5LDI4LjIgTDE2LjU4NTc3NDIsMzYuNTg1Nzg2NCBDMTcuMzY2ODIyOCwzNy4zNjY4MzUgMTguNjMzMTUyOCwzNy4zNjY4MzUgMTkuNDE0MjAxNCwzNi41ODU3ODY0IEw0MC41OTk5ODc4LDE1LjQgQzQxLjM3MzE4NjQsMTQuNjI2ODAxNCA0MS4zNzMxODY0LDEzLjM3MzE5ODYgNDAuNTk5OTg3OCwxMi42IEw0MC41OTk5ODc4LDEyLjYgQzM5LjgyNjc4OTEsMTEuODI2ODAxNCAzOC41NzMxODY0LDExLjgyNjgwMTQgMzcuNzk5OTg3OCwxMi42IEwxNy45OTk5ODc4LDMyLjQgWiI+PC9wYXRoPjwvZz48L2c+PC9nPjwvc3ZnPg==");
+            background-size: 3rem;
+            background-repeat: no-repeat;
+            background-position: center;
+          }
+
+          &:checked:focus,
+          &:focus{
+            outline: unset !important;
+            box-shadow: unset !important;
+          }
+
+
+          & + label{
+            display: inline-block;
+            vertical-align: middle;
+            font-size: 14px;
+            line-height: 22.4px;
+            font-weight: 600;
+            color: #03234b;
+            margin: 0 0 0 8px;
+          }
+        }
+      }
+
+      .add-selected-button{
+        margin: 16px 24px 0 auto;
+        display: block;
+      }
+    }
+
+    .modal-search-results{
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 8px;
+      margin-top: 12px;
+      padding: 24px !important;
+      background: #F6F7F9;
+      max-height: 300px;
+      overflow-y: auto;
+
+
+      @media (max-width: 1199.8px){
+        grid-template-columns: repeat(3,1fr);
+      }
+
+      @media (max-width: 767.8px){
+        grid-template-columns: repeat(2,1fr);
+      }
+
+      @media (max-width: 574.8px){
+        grid-template-columns: repeat(1,1fr);
+      }
+
+
+      .search-result-item {
+        min-height: 55px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px 0 rgba(3, 35, 75, 0.08);
+        border: 1px solid rgba(182,192,205,0.45);
+        padding: 12px 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .modal-search-result__description{
+          font-size: 12px;
+          line-height: 19.2px;
+          font-weight: 700;
+          color: #000;
+        }
+      }
+    }
+    }
+
+    #searchItem,
+    #invoiceNo{
+      &.w-50{
+        width: calc(100% - 12px);
+
+        @media (max-width: 767.8px){
+          width: 100%;
+        }
+      }
+    }
+  }
+
+  /* MODAL */
+  .modal.modal-big{
+
+    &#searchPrice{
+      .modal-body{
+        padding-bottom: 24px !important;
+      }
+    }
+
+    .modal-content{
+      padding: 0 !important;
+      overflow: hidden;
+    }
+
+    .modal-header{
+      padding: 40px 32px 0 !important;
+      margin: 0 !important;
+
+      .modal-title{
+        font-size: 24px;
+        line-height: 33.6px;
+        font-weight: 600;
+        color: #03234b;
+      }
+
+      .close{
+        position: absolute;
+        top: 16px;
+        right: 16px;
+      }
+    }
+
+    .modal-body{
+      padding: 16px 32px 0 !important;
+      display:flex;
+      flex-direction:column;
+
+      .search-button-modal{
+        margin-left:auto;
+        margin-top: 16px;
+      }
+
+      .container-fluid{
+        gap: unset !important;
+        margin:0;
+        padding: 0 !important;
+
+        .row{
+          margin: -12px;
+          margin-top: 8px;
+        }
+      }
+
+      .field-label{
+        font-size: 12px;
+        line-height: 19.2px;
+        color: #000;
+        font-weight: 400;
+      }
+    }
+
+    .modal-selection{
+      padding-bottom: 16px;
+      margin-top: 16px;
+
+      .item-container{
+        background-color: #f6f7f9;
+        height: 354px;
+        overflow-y: auto;
+
+        .item-container-header{
+          position: sticky;
+          top: 0;
+          z-index: 1;
+          background-color: #f6f7f9;
+          padding:16px 24px;
+        }
+
+        .item-container-body{
+          padding:0 24px;
+
+          .item-wrapper{
+            display: flex;
+            align-items: center;
+            gap: 16px;
+
+            & + .item-wrapper{
+              margin-top: 16px;
+            }
+
+            &:last-of-type{
+              margin-bottom: 16px;
+            }
+
+            input[type=checkbox]{
+              flex: 0 0 auto;
+            }
+
+            .item-banner{
+              width: 100%;
+              border-radius: 8px;
+              border: 1px solid rgba(182,192,205,0.45);
+              box-shadow: 0 4px 16px 9 rgba(3,35,75,0.08);
+
+              .banner-header{
+                background-color: #eceef4;
+                padding: 4px 8px;
+                border-radius: 8px 8px 0 0;
+
+                .banner-title{
+                  font-size: 14px;
+                  line-height: 22.4px;
+                  font-weight: 600;
+                  color: #000;
+                }
+              }
+
+              .banner-body{
+                display: grid;
+                grid-template-columns: repeat(5, 1fr);
+                gap: 16px;
+                background-color: #fcfcfd;
+                border-radius: 0 0 8px 8px;
+                padding: 8px 16px;
+
+                .info-item{
+                  display: flex;
+                  flex-direction: column;
+
+                  .info-title{
+                    font-size: 12px;
+                    line-height: 19.2px;
+                    font-weight: 700;
+                    color: #000;
+                  }
+
+                  .info-desc{
+                    font-size: 16px;
+                    line-height: 24px;
+                    font-weight: 400;
+                    color: #000;
+                  }
+                }
+              }
+
+            }
+          }
+        }
+
+        .form-group{
+          padding-top: 0 !important;
+        }
+
+        input.form-control[type="checkbox"]{
+          position: relative;
+          display: inline-block;
+          vertical-align: middle;
+          appearance: none;
+          width: 1.8rem !important;
+          height: 1.8rem !important;
+          border-color: #CDD3DB !important;
+          padding: 0 !important;
+          margin: 0 !important;
+          border: .2rem solid #03234b !important;
+          background-color: transparent !important;
+          border-radius: .3rem !important;
+
+          &:checked {
+            background-color: #03234b !important;
+            border-color: #03234b !important;
+          }
+
+          &:checked:after {
+            content: "";
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            left: 0;
+            top: 0;
+            background-image: url("data:image/svg+xml;base64,PHN2ZyBoZWlnaHQ9JzMwMHB4JyB3aWR0aD0nMzAwcHgnICBmaWxsPSIjZmZmZmZmIiB4bWxucz0iaHR0cDovL3d3dy53My5vcmcvMjAwMC9zdmciIHhtbG5zOnhsaW5rPSJodHRwOi8vd3d3LnczLm9yZy8xOTk5L3hsaW5rIiB2aWV3Qm94PSIwIDAgMTAwIDEwMCIgdmVyc2lvbj0iMS4xIiB4PSIwcHgiIHk9IjBweCI+PHRpdGxlPmljb25fYnlfUG9zaGx5YWtvdjEwPC90aXRsZT48ZGVzYz5DcmVhdGVkIHdpdGggU2tldGNoLjwvZGVzYz48ZyBzdHJva2U9Im5vbmUiIHN0cm9rZS13aWR0aD0iMSIgZmlsbD0ibm9uZSIgZmlsbC1ydWxlPSJldmVub2RkIj48ZyBmaWxsPSIjZmZmZmZmIj48ZyB0cmFuc2Zvcm09InRyYW5zbGF0ZSgyNi4wMDAwMDAsIDI2LjAwMDAwMCkiPjxwYXRoIGQ9Ik0xNy45OTk5ODc4LDMyLjQgTDEwLjk5OTk4NzgsMjUuNCBDMTAuMjI2Nzg5MSwyNC42MjY4MDE0IDguOTczMTg2NDQsMjQuNjI2ODAxNCA4LjE5OTk4Nzc5LDI1LjQgTDguMTk5OTg3NzksMjUuNCBDNy40MjY3ODkxNCwyNi4xNzMxOTg2IDcuNDI2Nzg5MTQsMjcuNDI2ODAxNCA4LjE5OTk4Nzc5LDI4LjIgTDE2LjU4NTc3NDIsMzYuNTg1Nzg2NCBDMTcuMzY2ODIyOCwzNy4zNjY4MzUgMTguNjMzMTUyOCwzNy4zNjY4MzUgMTkuNDE0MjAxNCwzNi41ODU3ODY0IEw0MC41OTk5ODc4LDE1LjQgQzQxLjM3MzE4NjQsMTQuNjI2ODAxNCA0MS4zNzMxODY0LDEzLjM3MzE5ODYgNDAuNTk5OTg3OCwxMi42IEw0MC41OTk5ODc4LDEyLjYgQzM5LjgyNjc4OTEsMTEuODI2ODAxNCAzOC41NzMxODY0LDExLjgyNjgwMTQgMzcuNzk5OTg3OCwxMi42IEwxNy45OTk5ODc4LDMyLjQgWiI+PC9wYXRoPjwvZz48L2c+PC9nPjwvc3ZnPg==");
+            background-size: 3rem;
+            background-repeat: no-repeat;
+            background-position: center;
+          }
+
+          &:checked:focus,
+          &:focus{
+            outline: unset !important;
+            box-shadow: unset !important;
+          }
+
+
+          & + label{
+            display: inline-block;
+            vertical-align: middle;
+            font-size: 14px;
+            line-height: 22.4px;
+            font-weight: 600;
+            color: #03234b;
+            margin: 0 0 0 8px;
+          }
+        }
+      }
+
+      .add-selected-button{
+        margin: 16px 24px 0 auto;
+        display: block;
+      }
+    }
+
+    .modal-search-results{
+      display: grid;
+      grid-template-columns: repeat(4,1fr);
+      gap: 8px;
+      margin-top: 12px;
+      padding: 24px !important;
+      background: #F6F7F9;
+      max-height: 300px;
+      overflow-y: auto;
+
+
+      @media (max-width: 1199.8px){
+        grid-template-columns: repeat(3,1fr);
+      }
+
+      @media (max-width: 767.8px){
+        grid-template-columns: repeat(2,1fr);
+      }
+
+      @media (max-width: 574.8px){
+        grid-template-columns: repeat(1,1fr);
+      }
+
+
+      .search-result-item {
+        min-height: 55px;
+        background-color: #fff;
+        border-radius: 8px;
+        box-shadow: 0 4px 16px 0 rgba(3, 35, 75, 0.08);
+        border: 1px solid rgba(182,192,205,0.45);
+        padding: 12px 24px;
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+
+        .modal-search-result__description{
+          font-size: 12px;
+          line-height: 19.2px;
+          font-weight: 700;
+          color: #000;
+        }
+      }
+    }
+  }
+.search-result-item {
+      min-height: 55px;
+      background-color: #fff;
+      border-radius: 8px;
+      box-shadow: 0 4px 16px 0 rgba(3, 35, 75, 0.08);
+      border: 1px solid rgba(182,192,205,0.45);
+      padding: 12px 24px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      .modal-search-result__description{
+        font-size: 12px;
+        line-height: 19.2px;
+        font-weight: 700;
+        color: #000;
+      }
+    }
+  /* Define the scrollbar style */
+  .item-container::-webkit-scrollbar {
+    width: 24px;
+    height: 24px;
+  }
+
+  /* Define the thumb style */
+  .item-container::-webkit-scrollbar-thumb:horizontal {
+    background: #03234b;
+    border-radius: 6px;
+    border-top: 10px solid #f6f7f9;
+    border-bottom: 10px solid #f6f7f9;
+  }
+
+  .item-container::-webkit-scrollbar-thumb:vertical {
+    background: #03234b;
+    border-radius: 6px;
+    border-left: 10px solid #f6f7f9;
+    border-right: 10px solid #f6f7f9;
+  }
+
+  /* Style the beginning section of the scrollbar track */
+  .item-container::-webkit-scrollbar-track-piece:horizontal:start {
+    background-color: #f6f7f9;
+    border-top: 10px solid #f6f7f9;
+    border-bottom: 10px solid #f6f7f9;
+    width: 30px;
+    height: 24px;
+  }
+
+  /* Style the end section of the scrollbar track */
+  .item-container::-webkit-scrollbar-track-piece:horizontal:end {
+    background-color: #f6f7f9;
+    border-top: 10px solid #f6f7f9;
+    border-bottom: 10px solid #f6f7f9;
+    width: 30px;
+    height: 24px;
+  }
+
+  /* Define the button style */
+  .item-container::-webkit-scrollbar-button {
+    background-color: #f6f7f9;
+    background-repeat: no-repeat;  
+    background-size: 24px;
+    width: 30px;
+    height: 24px;
+    border-radius: 4px;
+  }
+
+  .item-container::-webkit-scrollbar-button:start:decrement {
+    background-image: url("arrow-prev.svg");  
+    background-position: center -1px;
+  }
+
+  .item-container::-webkit-scrollbar-button:start:increment {
+    display: none;
+  }
+
+  .item-container::-webkit-scrollbar-button:end:decrement {
+    display: none;
+  }
+
+  .item-container::-webkit-scrollbar-button:end:increment {
+    background-image: url("arrow-next.svg");
+    background-position: center -1px;
+  }
+
+  .item-container::-webkit-scrollbar-button:vertical:start:decrement {
+    background-image: url("arrow-up.svg");  
+    background-position: center -1px;
+  }
+
+  .item-container::-webkit-scrollbar-button:vertical:start:increment {
+    display: none;
+  }
+
+  .item-container::-webkit-scrollbar-button:vertical:end:decrement {
+    display: none;
+  }
+
+  .item-container::-webkit-scrollbar-button:vertical:end:increment {
+    background-image: url("arrow-down.svg");
+    background-position: center -1px;
+  }
+
+.adjusted_amount-column .form-control.red-color {
+    color: red !important;
+}
+
+.amount-column .form-control.red-color {
+    color: red !important;
+}
+
+Server script
+
+(function() {
+
+    if (!input) {
+        var sys_id = $sp.getParameter("sys_id");
+        data.sys_id = sys_id;
+        var sysId = options.sysId;
+        data.show_row = false;
+        data.tab = "details";
+
+        //get details on load of form
+        var gr = new GlideRecord("sn_spend_psd_procurement_request");
+        gr.addQuery("sys_id", sys_id);
+        gr.query();
+        if (gr.next()) {
+            data.state = gr.getDisplayValue("state").toString();
+            data.reason = gr.getDisplayValue("u_reason_code").toString();
+            data.type = gr.getDisplayValue("case_type").toString();
+            var case_type = gr.case_type.toString();
+            data.currency = gr.getDisplayValue("u_currency").toString();
+            data.cd_db_amt = gr.getDisplayValue("u_cn_dn_amount").toString();
+            data.document_nr = gr.getDisplayValue("u_document_number").toString();
+            var dir_cust = gr.u_direct_ship_to.toString();
+            data.dir_ship_to = dir_cust;
+            var fnl_cust = gr.u_final_ship_to.toString();
+            data.final_customer = fnl_cust;
+            data.invoices = gr.getDisplayValue("u_html_json");
+            data.tax = gr.getDisplayValue("u_tax_code").toString().replace(/string:/g, '');
+            data.u_html_json = gr.getDisplayValue("u_html_json");
+            data.headerText = gr.getDisplayValue("short_description");
+            var u_header_json = JSON.parse(gr.u_header_json);
+            data.note = u_header_json.Znote.toString();
+
+            if (data.reason == "0010 - PRICE.WRONG") {
+                data.hideColumns = false;
+            } else {
+                data.hideColumns = true;
+            }
+
+            if (case_type == "112" && gr.u_reason_code == "0010 - PRICE.WRONG") { //CN/DN Amount Table
+                data.cndnAmountRedColor = true;
+            } else {
+                data.cndnAmountRedColor = false;
+            }
+
+            if (case_type == "112" && gr.u_reason_code != "0010 - PRICE.WRONG") { //Amount Table
+                data.setRedColor = true;
+            } else {
+                data.setRedColor = false;
+            }
+
+            gr.update();
+
+        }
+
+        data.chat = $sp.getWidget("ahlr_ticket_conversation", {
+            'st_table': 'sn_spend_psd_procurement_request',
+            'st_sys': data.sys_id
+        });
+
+    } else if (input.action == "resubmit") {
+
+        var sys_id = $sp.getParameter("sys_id");
+        data.sys_id = sys_id;
+        var sysId = options.sysId;
+
+        //get details on load of form
+        var gr = new GlideRecord("sn_spend_psd_procurement_request");
+        gr.addQuery("sys_id", sys_id);
+        gr.query();
+        if (gr.next()) {
+            gr.u_reason_code = input.reason;
+
+            if (input.type == "Credit Note") {
+                gr.case_type = "Credit Note";
+            } else {
+                gr.case_type = "Debit Note";
+
+            }
+
+            gr.u_direct_ship_to = input.dir_ship_to;
+            gr.u_final_ship_to = input.final_customer;
+            gr.u_currency = input.currency;
+            gr.u_tax_code = input.code;
+            gr.u_cn_dn_amount = input.cd_db_amt;
+            gr.u_html_json = input.invs;
+            gr.state = "30";
+            gr.u_ready_for_submition = true;
+            gr.u_save_as_draft = false;
+
+            gr.update();
+
+        }
+    } else if (input.action == "exportCSV") {
+
+        var headers = ["#", "Invoice", "Item", "Product", "Quantity", "Price", "Amount", "New Price", "New Amount", "Adjusted Amount"];
+        var fileName = 'invoices_template.csv'; //name
+        var csvData = ''; //The variable csvData will contain a string which is used to build the CSV file contents
+
+        var prop = new GlideRecord("sys_properties");
+        prop.addQuery("sys_id", "9ddf52581bc29a10aaf48553604bcbb5");
+        prop.query();
+        var grAttachment = new GlideSysAttachment();
+        var attach = grAttachment.write(prop, fileName, 'application/csv', csvData);
+        data.attachmentSysId = attach;
+
+    } else if (input.action == "direct_ship_to") {
+
+        var customerName = "'" + input.customer_name + "'";
+        var customerID = "'" + input.customer_id + "'";
+        var invoiceNR = "'" + input.invoiceNR + "'";
+
+        try {
+            var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Get Direct Ship-to Customer');
+            r.setStringParameterNoEscape('InvoiceNr', invoiceNR);
+            r.setStringParameterNoEscape('Customer', customerID);
+            r.setStringParameterNoEscape('CustomerName', customerName);
+            var response = r.execute();
+            var responseBody = response.getBody();
+            var json = gs.xmlToJSON(responseBody);
+            var str = JSON.stringify(json);
+            str = str.replace(/d:/g, "");
+            str = str.toLowerCase();
+            var customerRegex = /"directshiptocustomer":"([^"]+)"/g;
+            var customernameRegex = /"customername":"([^"]+)"/g;
+            var newArray = [];
+            var match;
+            var match2;
+            while ((match = customerRegex.exec(str)) !== null && (match2 = customernameRegex.exec(str)) !== null) {
+                newArray.push(match[1].toUpperCase() + " - " + match2[1].toUpperCase());
+            }
+            var filtered = JSON.stringify(newArray);
+            data.response = filtered;
+
+        } catch (ex) {
+            var message = ex.message;
+        }
+    } else if (input.action == "fetch_tax_code") {
+
+        var customerID2 = input.customer_id;
+        customerID2 = customerID2.substring(0, 10);
+        customerID2 = "'" + customerID2 + "'";
+        var invoice = "'" + input.invoiceX + "'";
+        try {
+            var tax = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Get Tax Code ');
+            tax.setStringParameterNoEscape('customer', customerID2);
+            tax.setStringParameterNoEscape('InvoiceNr', invoice);
+            var response1 = tax.execute();
+            var responseBody1 = response1.getBody();
+            var json1 = gs.xmlToJSON(responseBody1);
+            var str1 = JSON.stringify(json1);
+            str1 = str1.replace(/d:/g, "");
+            str1 = str1.toLowerCase();
+
+            var taxRegex = /"tax":"([^"]+)"/g;
+            var newTaxArray = [];
+            var match_tax;
+            while ((match_tax = taxRegex.exec(str1)) !== null) {
+                newTaxArray.push(match_tax[1]);
+            }
+            var tax_filtered = JSON.stringify(newTaxArray);
+            data.response_tax = tax_filtered;
+        } catch (ex) {
+            var message2 = ex.message;
+        }
+    } else if (input.action == "final_ship_to") {
+
+        var final_customer = "'" + input.customer_name + "'";
+        var customerID = "'" + input.customer_id + "'";
+        var invoiceNR = "'" + input.invoiceNR + "'";
+        try {
+            var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Get FinalShip-to Customer');
+            r.setStringParameterNoEscape('FinalShipToName', final_customer);
+            r.setStringParameterNoEscape('InvoiceNr', invoiceNR);
+            r.setStringParameterNoEscape('FinalShipToCustomer', customerID);
+            var response = r.execute();
+            var responseBody = response.getBody();
+            var json = gs.xmlToJSON(responseBody);
+            var str = JSON.stringify(json);
+            str = str.replace(/d:/g, "");
+            str = str.toLowerCase();
+            var finalshiptoname = /"finalshiptoname":"([^"]+)"/g;
+            var finalshiptocustomer = /"finalshiptocustomer":"([^"]+)"/g;
+            var newArray = [];
+            var match;
+            var match2;
+            while ((match = finalshiptocustomer.exec(str)) !== null && (match2 = finalshiptoname.exec(str)) !== null) {
+                newArray.push(match[1].toUpperCase() + " - " + match2[1].toUpperCase());
+            }
+            var filtered = JSON.stringify(newArray);
+            data.response = filtered;
+        } catch (ex) {
+            var message = ex.message;
+        }
+    } else if (input.action == "search_invoice") {
+
+        var direct_customer = "'" + input.direct_ship_to + "'";
+        var currency = "'" + input.currency + "'";
+        var invoice_from = "'" + input.invoice_from + "'";
+        var invoice_to = "'" + input.invoice_to + "'";
+        var from_date = "'" + input.from_date + "'";
+        var to_date = "'" + input.to_date + "'";
+        var product = "'" + input.product + "'";
+
+        try {
+            var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'SearchInvoice');
+            r.setStringParameterNoEscape('Product', product);
+            r.setStringParameterNoEscape('DirectShipTo', direct_customer);
+            r.setStringParameterNoEscape('InvoiceNrTo ', invoice_to);
+            r.setStringParameterNoEscape('InvoiceDateTo', to_date);
+            r.setStringParameterNoEscape('InvoiceDateFrom', from_date);
+            r.setStringParameterNoEscape('InvoiceNrFrom ', invoice_from);
+            r.setStringParameterNoEscape('Currency ', currency);
+
+            var response = r.execute();
+            var responseBody = response.getBody();
+            var json = gs.xmlToJSON(responseBody);
+            var str = JSON.stringify(json);
+            str = str.replace(/d:/g, "");
+            str = str.toLowerCase();
+            var invoNumberRegex = /"invoicenr":"([^"]+)"/g;
+            var productNameRegex = /"product":"([^"]+)"/g;
+            var priceRegex = /"price":"([^"]+)"/g;
+            var itemRegex = /"invoiceitem":"([^"]+)"/g;
+            var qtyRegex = /"qty":"([^"]+)"/g;
+            var match;
+            var match2;
+            var match3;
+            var match4;
+            var match5;
+            var invoiceArray = [];
+
+            while ((match = invoNumberRegex.exec(str)) !== null && (match2 = itemRegex.exec(str)) !== null && (match3 = productNameRegex.exec(str)) !== null && (match4 = qtyRegex.exec(str)) !== null && (match5 = priceRegex.exec(str)) !== null) {
+
+                invoiceArray.push({
+                    invoices: match[1].toUpperCase(),
+                    item: match2[1].toUpperCase(),
+                    products: match3[1].toUpperCase(),
+                    quantity: match4[1].toUpperCase(),
+                    price: match5[1].toUpperCase(),
+                });
+            }
+            data.response = invoiceArray;
+
+        } catch (ex) {
+            var message = ex.message;
+        }
+    } else if (input.action == "search_prod") {
+
+        var prodN = input.prod_name;
+        prodN = "'" + prodN + "'";
+        var prodD = input.prod_desc;
+        prodD = "'" + prodD + "'";
+
+        try {
+            var r1 = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'SearchProduct');
+            r1.setStringParameterNoEscape('ProductDescription', prodD);
+            r1.setStringParameterNoEscape('Product', prodN);
+
+            var response1 = r1.execute();
+            var responseBody1 = response1.getBody();
+            var httpStatus1 = response1.getStatusCode();
+            var json1 = gs.xmlToJSON(responseBody1);
+            var str1 = JSON.stringify(json1);
+            str1 = str1.replace(/d:/g, "");
+            str1 = str1.toLowerCase();
+            var prodNameRegex = /"product":"([^"]+)"/g;
+            var prodDescRegex = /"productdescription":"([^"]+)"/g;
+            var newArray1 = [];
+            var matchX1;
+            var matchX2;
+
+            while ((matchX1 = prodNameRegex.exec(str1)) !== null && (matchX2 = prodDescRegex.exec(str1)) !== null) {
+                newArray1.push(matchX1[1].toUpperCase() + " - " + matchX2[1].toUpperCase());
+            }
+            var filtered1 = JSON.stringify(newArray1);
+            data.response = filtered1;
+        } catch (ex) {
+            var message1 = ex.message;
+        }
+    }
+})();
+
+Client controller:
+
+api.controller = function($window, $scope, $rootScope, $uibModal, spUtil) {
+    /* widget controller */
+    var c = this;
+    $scope.invoices = [{
+        invoices: "",
+        item: "",
+        products: "",
+        quantity: "",
+        price: "",
+        amount: "",
+        unitary_price: "",
+        new_amount: "",
+        adj_amt: ""
+    }];
+
+    var temp = {};
+    var array = [];
+    temp = c.data.tax;
+    array.push(temp);
+    c.data.choices = array;
+
+    c.data.code = c.data.tax;
+
+    if (c.data.invoices != "") {
+        $scope.invoices = JSON.parse(c.data.invoices);
+        c.data.show_row = true;
+    }
+
+    //Check when "edit" button is clicked from banner turnback widget
+    c.data.edit_form = "false";
+    $rootScope.$on('xy', function(event, data) {
+        //if edit button is clicked allow field editing
+        if (event != "") {
+            c.data.edit_form = "true";
+        }
+    });
+
+    $rootScope.$on('yz', function(event, data) {
+
+        c.data.resAction = data;
+        c.data.action = "resubmit";
+        c.data.reason = document.getElementById("reason").value;
+        alert(c.data.reason);
+        c.data.type = document.getElementById("type").value;
+        c.data.dir_customer = document.getElementById("dir_customer").value;
+        c.data.fnl_customer = document.getElementById("fnl_customer").value;
+        c.data.cur = document.getElementById("cur").value;
+        c.data.tax = document.getElementById("tax").value;
+        c.data.cd_db = document.getElementById("cd_db").value;
+        c.data.invs = c.data.u_html_json;
+        spUtil.addInfoMessage("Credit Debit Note has been updated");
+
+        c.server.update().then(function() {
+
+            c.data.action = undefined;
+            setTimeout(function() {
+                $window.location.reload();
+            }, 300);
+        });
+    });
+
+    $scope.exportAttachment = function() {
+        c.data.table = c.data.arrayTable;
+        c.data.resInfo = c.data.resources;
+        c.data.action = "exportCSV";
+        c.server.update().then(function() {
+            c.data.action = undefined;
+            $window.open("/sys_attachment.do?sys_id=78c0d4a41bde1ad0aaf48553604bcb3a");
+        });
+    };
+
+    $scope.closeModal = function() {
+        c.modalInstance.close();
+        c.data.btnDefDisabled = false;
+        $scope.resInfo = [];
+    };
+
+    $scope.openModalAttachment = function(template) {
+        c.modalInstance = $uibModal.open({
+            templateUrl: template,
+            keyboard: false,
+            backdrop: 'static',
+            scope: $scope
+        });
+    };
+
+    $scope.save_attachment = function() {
+        var fileInput = document.getElementById('upload-file');
+        var file = fileInput.files[0];
+
+        if (!file) {
+            return;
+        }
+
+        if (file.type !== 'text/csv' && !file.name.endsWith('.csv')) {
+            spUtil.addErrorMessage('FILE NOT VALID, INSERT A CSV FILE');
+
+            fileInput.value = '';
+            document.getElementById("upload-certifcate").value = '';
+            return;
+        }
+
+        var reader = new FileReader();
+
+        reader.onload = function(event) {
+            var fileContent = event.target.result;
+
+            var rows = fileContent.split('\n').slice(1);
+            var result = rows.map(function(row) {
+                var cells = row.split(',');
+
+                while (cells.length > 0 && (cells[cells.length - 1] === '\r' || cells[cells.length - 1] === '')) {
+                    cells.pop();
+                }
+
+                return cells;
+            }).filter(function(row) {
+                return !row.includes('Live') && row.length > 0;
+            });
+
+            $scope.modifyCellAttach(result);
+            $scope.closeModal();
+        };
+
+        reader.readAsText(file);
+    };
+
+    $scope.modifyCellAttach = function(array) {
+        //var caseType = $scope.page.g_form.getValue("case_type");
+        var newArray = array.map(function(row) {
+            var amount = c.checkDecimals(parseFloat(row[3])) * c.checkDecimals(parseFloat(row[4]));
+            var new_amount = c.checkDecimals(parseFloat(row[3])) * c.checkDecimals(parseFloat(row[5]));
+            var adj_amt = amount - new_amount;
+            return {
+                invoices: row[0],
+                item: row[1],
+                products: row[2],
+                quantity: row[3],
+                price: row[4].toString(),
+                amount: amount.toString(),
+                unitary_price: row[5].toString().replace(/\r/g, ''),
+                new_amount: new_amount.toString(),
+                adj_amt: adj_amt.toString()
+            };
+        });
+        $scope.invoices = newArray;
+        c.setTotal($scope.invoices);
+        c.data.u_html_json = JSON.stringify(newArray);
+
+        //  c.set_tax();
+
+    };
+
+    c.checkDecimals = function(num) {
+
+        var numStr = num.toString();
+        var decimalIndex = numStr.indexOf('.');
+
+        if (decimalIndex === -1) {
+            return num; // No decimal point, return as is
+        } else {
+            var decimalPart = numStr.slice(decimalIndex + 1);
+            if (decimalPart.length > 4) {
+                var adjusted = parseFloat(num).toFixed(4);
+                return adjusted;
+
+            } else {
+                return num;
+            }
+        }
+
+    };
+
+    c.addrow = function() {
+
+        var array = {
+            invoices: "",
+            item: "",
+            products: "",
+            quantity: "",
+            price: "",
+            amount: "",
+            unitary_price: "",
+            new_amount: "",
+            adj_amt: ""
+        };
+
+        if (($('.invoice-input').val()) == "" && ($('.product-input').val()) == "") {
+            return;
+        } else {
+
+            var invoice = ($('.invoice-input').val());
+            var item = ($('.item-input').val());
+            var product = ($('.product-input').val());
+            var quantity = parseFloat(($('.quantity-input').val()));
+            var price = parseFloat(($('.price-input').val()));
+            var unitary_price = parseFloat(($('.unitary_price-input').val()));
+            var amount = parseFloat(($('.amount-input').val()));
+            var new_amt = parseFloat(($('.n-amount-input').val()));
+            var adj_amt = parseFloat(($('.adjusted_amount-input').val()));
+            var lastElement = $scope.invoices.length;
+            for (var i in $scope.invoices) {
+                if ($scope.invoices[i] == lastElement) {
+                    $scope.invoices[i].invoices = invoice;
+                    $scope.invoices[i].item = item;
+                    $scope.invoices[i].products = product;
+                    $scope.invoices[i].quantity = parseFloat(quantity);
+                    $scope.invoices[i].price = parseFloat(price);
+                    $scope.invoices[i].amount = parseFloat(amount);
+                    $scope.invoices[i].unitary_price = parseFloat(unitary_price);
+                    $scope.invoices[i].new_amount = parseFloat(new_amt);
+                    $scope.invoices[i].adj_amt = adj_amt;
+                }
+                //$scope.page.g_form.setValue("u_html_json", JSON.stringify($scope.invoices));
+            }
+            $scope.invoices.push(array);
+        }
+    };
+
+    c.calculate_amount = function(invoice) {
+
+        if (!invoice.quantity) {
+            invoice.price = "";
+            invoice.amount = "";
+            return;
+        }
+
+        if (!invoice.price && invoice.quantity && invoice.amount) {
+            invoice.amount = "";
+            return;
+        }
+
+        var quantity = c.checkDecimals(parseFloat(invoice.quantity));
+        var price = c.checkDecimals(parseFloat(invoice.price));
+        var unitary_price = c.checkDecimals(parseFloat(invoice.unitary_price));
+
+        if (invoice.quantity && isNaN(price)) {
+            return;
+        } else if (isNaN(quantity) && invoice.price) {
+            return;
+        }
+        var amount = quantity * price;
+        invoice.amount = amount.toString();
+
+        var html = c.data.u_html_json;
+        if (html != '') {
+            var json = JSON.parse(html);
+            for (var j = 0; j < json.length; j++) {
+                if (json[j].invoices == invoice.invoices) {
+                    json.splice(j, 1);
+                }
+            }
+            json.push(invoice);
+            c.data.u_html_json = JSON.stringify(json);
+        } else {
+            var t = [];
+            t.push(invoice);
+            c.data.u_html_json = JSON.stringify(t);
+        }
+
+    };
+
+    c.calculate_adj_amount = function(invoice) {
+
+        var newP = parseFloat(invoice.unitary_price);
+        newP = c.checkDecimals(newP);
+        var invoiceNo = invoice.invoices;
+        var html = c.data.u_html_json;
+        var json = JSON.parse(html);
+
+        if (newP) {
+            for (var k = 0; k < json.length; k++) {
+
+                if (json[k].invoices == invoiceNo) {
+                    var qty = c.checkDecimals(parseFloat(invoice.quantity));
+                    var amt = c.checkDecimals(parseFloat(invoice.amount));
+                    newP = c.checkDecimals(newP);
+                    var newA = qty * newP;
+                    newA = newA.toString();
+                    var adjA = amt - newA;
+                    adjA = adjA.toString();
+
+                    invoice.unitary_price = newP;
+                    invoice.new_amount = newA;
+                    invoice.adj_amt = adjA;
+                    json[k].unitary_price = invoice.unitary_price;
+                    json[k].new_amount = invoice.new_amount;
+                    json[k].adj_amt = invoice.adj_amt;
+
+                    c.data.u_html_json = JSON.stringify(json);
+                }
+
+            }
+            c.setTotal(json);
+        } else {
+            for (var j = 0; j < json.length; j++) {
+
+                if (json[j].invoices == invoiceNo) {
+
+                    invoice.unitary_price = "";
+                    invoice.new_amount = "";
+                    invoice.adj_amt = "";
+                    json[j].unitary_price = invoice.unitary_price;
+                    json[j].new_amount = invoice.new_amount;
+                    json[j].adj_amt = invoice.adj_amt;
+
+                    c.data.u_html_json = JSON.stringify(json);
+                }
+
+            }
+            c.setTotal(json);
+        }
+    };
+
+    c.setTotal = function(array) {
+        var caseType = c.data.type;
+        var sum = c.data.cd_db_amt;
+        var temp = 0;
+        var main = "";
+        for (var i = 0; i < array.length; i++) {
+            main = parseFloat(array[i].adj_amt);
+            if (isNaN(main) && isNaN(temp)) {
+                temp = 0;
+            } else {
+                if (!isNaN(main))
+                    temp += parseFloat(array[i].adj_amt);
+            }
+
+        }
+
+        if (caseType == "Credit Note" && temp > 0) {
+            c.data.cd_db_amt = temp;
+        } else if (caseType == "Credit Note" && temp < 0) {
+            spUtil.addInfoMessage('Your Request Type was wrong. It has been set to Debit Note');
+            c.data.type = "Debit Note";
+            c.data.cd_db_amt = Math.abs(temp);
+        } else if (caseType == "Debit Note" && temp < 0) {
+            c.data.cd_db_amt = Math.abs(temp);
+        } else if (caseType == "Debit Note" && temp > 0) {
+            spUtil.addInfoMessage('Your Request Type was wrong. It has been set to Credit Note');
+            c.data.type = "Credit Note";
+            c.data.cd_db_amt = Math.abs(temp);
+        } else if ((caseType == "Debit Note" || caseType == "Credit Note") && temp == 0) {
+            c.data.cd_db_amt = temp;
+        }
+
+    };
+
+    c.remove = function(index) {
+
+        if (index == 0) {
+            $scope.invoices = [{
+                invoices: "",
+                item: "",
+                products: "",
+                quantity: "",
+                price: "",
+                amount: "",
+                unitary_price: "",
+                new_amount: "",
+                adj_amt: ""
+            }];
+            c.data.cd_db_amt = "";
+            c.data.u_html_json = "";
+            return;
+        } else {
+            $scope.invoices.splice(index, 1);
+            c.data.u_html_json = JSON.stringify($scope.invoices);
+            c.setTotal($scope.invoices);
+        }
+
+    };
+
+    c.getSelectedRecord = function(selectedItem) {
+        c.data.dir_ship_to = selectedItem.toString();
+        c.set_tax(selectedItem);
+        $('#searchModal').modal('hide');
+    };
+
+    c.getDirectShipTo = function() {
+        var action = c.data.action;
+        c.data.action = "direct_ship_to";
+
+        c.data.customer_name = c.name;
+        c.data.customer_id = c.customerID;
+        c.data.invoiceNR = c.invoiceNR;
+
+        if (!c.data.customer_name && !c.data.customer_id && !c.data.invoiceNR) {
+            $scope.page.g_form.addErrorMessage("At least one field must be filled to perform the final customer search.");
+        }
+        if (!c.data.customer_name) {
+            c.data.customer_name = '*';
+        }
+        if (!c.data.customer_id) {
+            c.data.customer_id = '*';
+        }
+        if (!c.data.invoiceNR) {
+            c.data.invoiceNR = '*';
+        }
+        if (c.data.customer_name == '*' && c.data.customer_id == '*' && c.data.invoiceNR == '*') {
+            $scope.page.g_form.addErrorMessage("At least one field must be filled.");
+        }
+        c.server.update().then(function() {
+            c.data.objJson = JSON.parse(c.data.response);
+
+        });
+    };
+
+    c.set_tax = function() {
+
+        var action = c.data.action;
+        c.data.action = "fetch_tax_code";
+        c.data.customer_id = c.data.dir_ship_to;
+        var invoice = ($('.invoice-input').val());
+        c.data.invoiceX = invoice;
+
+        c.server.update().then(function() {
+            var invs = c.data.response_tax;
+            var json = JSON.parse(invs);
+            c.data.choices = [];
+
+            for (var i = 0; i < json.length; i++) {
+                c.data.choices.push(json[i]);
+            }
+            c.data.tax = c.data.choices[0];
+        });
+    };
+
+    c.getSelectedRecord2 = function(selectedItem) {
+        c.data.final_customer = selectedItem.toString();
+        $('#searchModal1').modal('hide');
+
+    };
+
+    c.getFinalShipTo = function() {
+        var action = c.data.action;
+        c.data.action = "final_ship_to";
+        c.data.customer_name = c.name;
+        c.data.customer_id = c.customerID;
+        c.data.invoiceNR = c.invoiceNR;
+
+        if (!c.data.customer_name && !c.data.customer_id && !c.data.invoiceNR) {
+            $scope.page.g_form.addErrorMessage("At least one field must be filled to perform the final customer search.");
+        }
+        if (!c.data.customer_name) {
+            c.data.customer_name = '*';
+        }
+        if (!c.data.customer_id) {
+            c.data.customer_id = '*';
+        }
+        if (!c.data.invoiceNR) {
+            c.data.invoiceNR = '*';
+        }
+        if (c.data.customer_name == '*' && c.data.customer_id == '*' && c.data.invoiceNR == '*') {
+            $scope.page.g_form.addErrorMessage("At least one field must be filled.");
+        }
+        c.server.update().then(function() {
+            c.data.objJson = JSON.parse(c.data.response);
+        });
+    };
+
+    c.getSelectedRecord = function(banner) {
+        var span_Text = document.getElementById("invo").innerText;
+        document.getElementById('invotest').value = span_Text;
+        $('#searchModal2').modal('hide');
+    };
+
+    c.searchInvoice = function() {
+        if (c.data.objJson != "") {
+            c.data.objJson = [];
+        }
+        var action = c.data.action;
+        c.data.action = "search_invoice";
+        c.data.direct_ship_to = document.getElementById("dir_customer").value;
+        c.data.currency = document.getElementById("cur").value;
+        c.data.currency = c.data.currency.toUpperCase();
+        c.data.invoice_to = document.getElementById("invo_to").value;
+        c.data.invoice_from = document.getElementById("invo_from").value;
+        c.data.from_date = document.getElementById("from_date").value;
+        c.data.to_date = document.getElementById("to_date").value;
+        c.data.product = document.getElementById("prod_from").value;
+        if (c.data.direct_ship_to == "" && c.data.currency == "" && c.data.invoice_from == "" && c.data.invoice_to == "" && c.data.from_date == "" && c.data.to_date == "" && c.data.product == "") {
+            $scope.page.g_form.addErrorMessage("Missing values, make sure to compile all needed fields to perform the invoice search.")
+        }
+        if (c.data.product == "") {
+            c.data.product = "*";
+        }
+        if (c.data.invoice_from == "") {
+            c.data.invoice_from = "*";
+        }
+        if (c.data.invoice_to == "") {
+            c.data.invoice_to = "*";
+        }
+        if (c.data.from_date == "") {
+            c.data.from_date = "1900-01-01T00:00:01";
+        }
+        if (c.data.to_date == "") {
+            c.data.to_date = "9999-01-01T00:00:01";
+        }
+        c.server.update().then(function() {
+            c.data.objJson = c.data.response;
+        });
+    };
+
+    c.checkAll = function() {
+
+        var selection = document.getElementById("selectAll");
+        var checkboxes = document.querySelectorAll(".checkbox-input");
+        if (selection.checked == true) {
+            for (var k = 0; k < checkboxes.length; k++) {
+                checkboxes[k].checked = true;
+            }
+        } else {
+            for (var z = 0; z < checkboxes.length; z++) {
+                checkboxes[z].checked = false;
+            }
+        }
+    };
+
+    c.setCheckTrue = function() {
+
+        c.hiddenField = "true";
+    };
+
+    c.addCountCurr = function(invoice, item, product, quantity, price) {
+
+        var check = document.getElementById("checkSelect_" + invoice);
+        if (check.checked == true) {
+            var amount = parseFloat(quantity) * parseFloat(price);
+
+            var arrcurr = {};
+            arrcurr.invoices = invoice;
+            arrcurr.item = item;
+            arrcurr.products = product;
+            arrcurr.quantity = quantity;
+            arrcurr.price = price;
+            arrcurr.amount = amount;
+
+            for (var k = $scope.invoices.length - 1; k >= 0; k--) { // Iterate backwards for efficiency
+                if ($scope.invoices[k].invoices === "") {
+                    $scope.invoices.splice(k, 1);
+                }
+            }
+            $scope.invoices.push(arrcurr);
+            c.data.u_html_json = JSON.stringify($scope.invoices);
+
+        } else {
+            for (var t = 0; t < $scope.invoices.length; t++) {
+                if ($scope.invoices[t].invoices == invoice) {
+
+                    $scope.invoices.splice(t, 1);
+                }
+            }
+            c.data.u_html_json = JSON.stringify($scope.invoices);
+
+        }
+    };
+
+    c.addMultipleRows = function(type, newPrice) {
+
+        if (type == 'getProd' || type == 'getInv') {
+            $scope.invoices = [];
+            var temp_array = {
+                invoices: "",
+                item: "",
+                products: "",
+                quantity: "",
+                price: "",
+                amount: "",
+                unitary_price: "",
+                new_amount: "",
+                adj_amt: ""
+            };
+            $scope.invoices.push(temp_array);
+
+        }
+        $scope.invoices = [];
+        var selection = document.getElementById("selectAll");
+        var sum;
+        var temp = [];
+        if (selection.checked == true) {
+            for (var j = 0; j < c.data.objJson.length; j++) {
+
+                var el = {};
+                //var elements = c.data.objJson[j];
+                var invoice = c.data.objJson[j].invoices;
+                var item = c.data.objJson[j].item;
+                var product = c.data.objJson[j].products;
+                var quantity = c.data.objJson[j].quantity;
+                quantity = parseFloat(quantity);
+                var price = c.data.objJson[j].price;
+                price = parseFloat(price);
+
+                el.invoices = invoice;
+                el.item = item;
+                el.products = product;
+                el.quantity = quantity;
+                el.price = price;
+                el.amount = quantity * price;
+                if (newPrice != '') {
+                    newPrice = parseFloat(newPrice);
+                    el.new_amount = quantity * newPrice;
+                    el.adj_amt = (quantity * price) - (quantity * newPrice);
+                    sum = el.adj_amt;
+                } else {
+                    el.new_amount = '';
+                    el.adj_amt = '';
+                }
+                $scope.invoices.push(el);
+            }
+            c.data.u_cn_dn_amount = sum;
+            $('#searchModal2').modal('hide');
+        } else {
+            $('#searchModal2').modal('hide');
+        }
+    };
+
+    c.getProd = function() {
+        var action = c.data.action;
+        c.data.action = "search_prod";
+        c.data.prod_name = document.getElementById("prod_name").value;
+        c.data.prod_desc = document.getElementById("prod_desc").value;
+        c.server.update().then(function() {
+
+            c.data.objJson1 = JSON.parse(c.data.response);
+            c.addMultipleRows('getProd', c.data.objJson1);
+        });
+    };
+
+    c.getSelectedRecordX = function(selectedItem) {
+
+        $scope.invoices = [];
+        var regex = /^([^-]*)/;
+        var match = selectedItem.match(regex);
+        var elem = {};
+
+        elem.invoices = "";
+        elem.item = "";
+        elem.products = match;
+        elem.quantity = "";
+        elem.price = "";
+        elem.amount = "";
+        elem.new_amount = "";
+        elem.adj_amt = "";
+
+        $scope.invoices.push(elem)
+        $('#searchProd').modal('hide');
+    };
+
+    c.getNewPrice = function() {
+        var newPrice = $('.newPrice-input').val();
+        newPrice = parseFloat(newPrice);
+
+        if (!isNaN(newPrice)) {
+
+            var total = 0;
+            var temp_check_el = [];
+            var invs = $scope.invoices;
+            $scope.invoices = [];
+            for (var j = 0; j < invs.length; j++) {
+
+                var quantity = invs[j].quantity;
+                var amount = invs[j].amount;
+                var new_amount = newPrice * quantity;
+                var tot = amount - new_amount;
+                amount = parseFloat(amount);
+                new_amount = parseFloat(new_amount);
+                tot = parseFloat(tot);
+
+                invs[j].invoices = invs[j].invoices;
+                invs[j].item = invs[j].item;
+                invs[j].products = invs[j].products;
+                invs[j].quantity = invs[j].quantity.toString();
+                invs[j].price = invs[j].price.toString();
+                invs[j].amount = invs[j].amount.toString();
+                invs[j].unitary_price = newPrice.toString();
+                invs[j].new_amount = new_amount.toString();
+                invs[j].adj_amt = tot.toString();
+
+                total += tot;
+
+            }
+            $scope.invoices = invs;
+            c.data.u_html_json = JSON.stringify($scope.invoices);
+            c.setTotal($scope.invoices);
+
+            $('#searchPrice').modal('hide');
+        } else {
+            spUtil.addErrorMessage("Please enter a numeric value (integer or decimal).");
+            $('.newPrice-input').val('');
+        }
+    };
+
+    $scope.setTab = function(value) {
+        c.data.tab = value + "";
+    }
+
+};
+
+
+
