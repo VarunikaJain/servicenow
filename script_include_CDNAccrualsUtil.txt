@@ -1,0 +1,803 @@
+	
+
+var CDNAccrualsUtils = Class.create();
+CDNAccrualsUtils.prototype = Object.extendsObject(global.AbstractAjaxProcessor, {
+
+    fetchReasonCode: function() {
+        try {
+            var user_record = new GlideRecord("sys_user");
+            user_record.get(gs.getUserID());
+            var login = user_record.u_login;
+            var email = gs.getUser().getEmail();
+
+            var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Get Reason Code');
+            r.setStringParameterNoEscape('login', login);
+            r.setStringParameterNoEscape('email', email);
+            var response = r.execute();
+            var responseBody = response.getBody();
+            var json = gs.xmlToJSON(responseBody);
+
+            var str = JSON.stringify(json);
+            str = str.replace(/d:/g, "");
+            str = str.toLowerCase();
+            var reasonRegex = /"reason":"([^"]+)"/g;
+            var reasonDescRegex = /"reasondescr":"([^"]+)"/g;
+            var newArray = [];
+            var result = [];
+            var match;
+            var match2;
+
+            var obj = {};
+
+            while ((match = reasonRegex.exec(str)) !== null && (match2 = reasonDescRegex.exec(str)) !== null) {
+                newArray.push(match[1] + " - " + match2[1]);
+            }
+
+            if (json.feed) {
+
+                var array = json.feed.entry;
+
+                for (var i in array) {
+
+                    if (array[i]["content"]["m:properties"]["d:AccrualFlag"].toString() != "") {
+
+                        obj[array[i]["content"]["m:properties"]["d:Reason"]] = array[i]["content"]["m:properties"]["d:AccrualFlag"];
+                    }
+
+                }
+            }
+
+            result.push(newArray);
+            result.push(obj);
+
+            var filtered = JSON.stringify(result);
+
+            return filtered;
+        } catch (ex) {
+            var message = ex.message;
+        }
+
+    },
+
+    fetchCurrency: function() {
+        var user_record = new GlideRecord("sys_user");
+        user_record.get(gs.getUserID());
+        var login = user_record.u_login;
+        var email = gs.getUser().getEmail();
+
+        try {
+            var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Get Currency');
+            r.setStringParameterNoEscape('login', login);
+            r.setStringParameterNoEscape('email', email);
+
+            var response = r.execute();
+            var responseBody = response.getBody();
+            var json = gs.xmlToJSON(responseBody);
+
+            var str = JSON.stringify(json);
+            str = str.replace(/d:/g, "");
+            str = str.toLowerCase();
+            var currencyRegex = /"currency":"([^"]+)"/g;
+            var currencyDescRegex = /"currencyname":"([^"]+)"/g;
+            var newArray = [];
+            var matchX1;
+            var matchX2;
+
+            while ((matchX1 = currencyRegex.exec(str)) !== null && (matchX2 = currencyDescRegex.exec(str)) !== null) {
+                newArray.push(matchX1[1].toUpperCase() + " - " + matchX2[1].toUpperCase());
+            }
+            var filtered = JSON.stringify(newArray);
+            return filtered;
+        } catch (ex) {
+            var message = ex.message;
+        }
+    },
+
+    retrieveData: function() {
+        var sys_id = this.getParameter("sysparm_id");
+        var pr = new GlideRecord("sn_spend_psd_procurement_request");
+        pr.addQuery("sys_id", sys_id);
+        pr.query();
+        if (pr.next()) {
+            var el = {};
+            el.u_reason_code = pr.u_reason_code + "";
+            el.case_type = pr.case_type + "";
+            el.u_final_ship_to = pr.u_final_ship_to + "";
+            el.u_direct_ship_to = pr.u_direct_ship_to + "";
+            el.u_currency = pr.u_currency + "";
+            el.u_tax_code = pr.u_tax_code + "";
+            el.u_cn_dn_amount = pr.u_cn_dn_amount + "";
+            el.u_html_json = JSON.parse(pr.u_html_json);
+            el.headerText = pr.short_description + "";
+            el.noTax = pr.u_empty_tax + "";
+            el.note = JSON.parse(pr.u_header_json).Znote + "";
+            el.sap_id = pr.u_sap_id + "";
+        }
+
+        return JSON.stringify(el);
+    },
+
+    editData: function() {
+        var obj = {};
+        obj.sapId = ""; // Procurement case SAP ID
+        obj.state = "10"; // Draft
+        obj.trowError = ""; // Error Message
+        obj.errorFound = "false"; // True if error is found
+        obj.approvers = ""; // Approvers
+        var sys_id = this.getParameter("sysparm_id");
+        var reasonCode = this.getParameter("sysparm_reason_code");
+        var caseType = this.getParameter("sysparm_case_type");
+        var finalShipTo = this.getParameter("sysparm_final_ship_to");
+        var directShipTo = this.getParameter("sysparm_direct_ship_to");
+        var currency = this.getParameter("sysparm_currency");
+        var taxCodeTemp = this.getParameter("sysparm_tax_code_temp");
+        var cnDnAmount = this.getParameter("sysparm_cn_dn_amount");
+        var htmlJson = this.getParameter("sysparm_html_json");
+        var shortDescription = this.getParameter("sysparm_short_description");
+        var note = this.getParameter("sysparm_note");
+        var u_save_as_draft = this.getParameter('sysparm_u_save_as_draft');
+        var u_ready_for_submition = this.getParameter('sysparm_u_ready_for_submition');
+        var empty_tax = this.getParameter('sysparm_empty_tax');
+
+        var pr = new GlideRecord("sn_spend_psd_procurement_request");
+        pr.addQuery("sys_id", sys_id);
+        pr.query();
+        if (pr.next()) {
+            pr.u_empty_tax = empty_tax;
+            pr.u_reason_code = reasonCode;
+            pr.case_type = caseType;
+            pr.u_direct_ship_to = directShipTo;
+            pr.u_final_ship_to = finalShipTo;
+            pr.u_currency = currency;
+            pr.u_tax_code = taxCodeTemp;
+            pr.short_description = shortDescription;
+            pr.u_catcherror = "";
+
+            pr.u_save_as_draft = u_save_as_draft;
+            pr.u_ready_for_submition = u_ready_for_submition;
+
+            var u_header_json_note = JSON.parse(pr.u_header_json);
+            u_header_json_note.Znote = note;
+            pr.u_header_json = JSON.stringify(u_header_json_note);
+            //pr.u_total_cd_db_amt = cnDnAmount;
+            pr.u_html_json = htmlJson;
+            pr.u_cn_dn_amount = cnDnAmount;
+            if (u_save_as_draft == "true") {
+                pr.state = "10";
+            } else if (u_ready_for_submition == "true") {
+                pr.state = "10";
+                //
+                // Get Apporver
+                var document = pr.u_sap_id.toString();
+                document = "'" + pr.u_sap_id.toString() + "'";
+
+                try {
+                    var user_record = new GlideRecord("sys_user");
+                    user_record.get(gs.getUserID());
+                    var login = user_record.u_login;
+                    var email = gs.getUser().getEmail();
+
+                    var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Get Approvers');
+                    r.setStringParameterNoEscape('login', login);
+                    r.setStringParameterNoEscape('email', email);
+                    r.setStringParameterNoEscape('sap_record', document);
+
+                    var response = r.execute();
+                    var responseBody = response.getBody();
+                    var status = response.getStatusCode();
+
+                    if (status != 200) {
+
+                        obj.trowError = "Get approver error";
+                        obj.errorFound = "true";
+                        var xmlDoc = new XMLDocument2();
+                        xmlDoc.parseXML(responseBody); // assuming responseBody contains your error XML
+
+                        // Grab the first <message> element, regardless of namespace
+                        var messageNode = xmlDoc.getFirstNode("//*[local-name()='message']");
+
+                        if (messageNode) {
+                            obj.trowError = messageNode.getTextContent();
+                        }
+                        pr.u_catcherror = obj.trowError + "; request is recorded in draft status";
+                        pr.update();
+                        gs.addErrorMessage(obj.trowError + "; request is recorded in draft status");
+                        return JSON.stringify(obj);
+                    }
+
+                    obj.state = "30"; // Work in progress
+                    var xmlDoc = new XMLDocument2();
+                    xmlDoc.parseXML(responseBody);
+
+                    var recurringNode = xmlDoc.getFirstNode("//d:Approvers");
+                    var arr = [];
+
+                    while (recurringNode != null) {
+                        var childIterator = recurringNode.getChildNodeIterator();
+                        var approver = {}; // Object to store approver data
+
+                        while (childIterator.hasNext()) {
+                            var childNode = childIterator.next();
+                            var childNodeName = childNode.getNodeName();
+
+                            // Extract values of the required fields
+                            if (childNodeName == "d:Id") {
+                                approver.id = childNode.getTextContent();
+                            } else if (childNodeName == "d:ApprovalLevel") {
+                                approver.level = childNode.getTextContent();
+                            } else if (childNodeName == "d:Role") {
+                                approver.role = childNode.getTextContent();
+                            } else if (childNodeName == "d:Mail") {
+                                approver.mail = childNode.getTextContent();
+                            } else if (childNodeName == "d:Flow") {
+                                approver.flow = childNode.getTextContent();
+                            } else if (childNodeName == "d:Action") {
+                                approver.action = childNode.getTextContent();
+                            }
+                        }
+
+                        // Add the approver object to the array if it contains all required fields
+                        if (approver.id && approver.level && approver.role && approver.mail && approver.flow && approver.action) {
+                            arr.push(approver);
+                        }
+
+                        recurringNode = xmlDoc.getNextNode(recurringNode);
+                    }
+
+                    pr.u_approvers_json = JSON.stringify(arr);
+
+                } catch (ex) {
+                    var message = ex.message;
+                }
+                //End Get Approver
+                //Set status if get approver is ok
+
+                var status = '';
+                var u_sap_id = pr.u_sap_id.toString();
+                u_sap_id = "'" + u_sap_id + "'";
+                var u_sap_id2 = pr.u_sap_id.toString();
+            }
+
+            var cdnGlobalUtils = new global.CDNUtilsGlobal().updateAttach(sys_id);
+
+            pr.comments = "Request was edited successfully";
+            pr.update();
+        }
+
+        return JSON.stringify(obj);
+    },
+
+    saveData: function() {
+        var obj = {};
+        obj.sapId = ""; // Procurement case SAP ID
+        obj.state = "10"; // Draft
+        obj.trowError = ""; // Error Message
+        obj.errorFound = "false"; // True if error is found
+        obj.errorCheck = "false"; //true if errorCheck if found cant proceed
+        obj.approvers = ""; // Approvers
+        var caseType = this.getParameter("sysparm_case_type");
+        var finalShipTo = this.getParameter("sysparm_final_ship_to");
+        var directShipTo = this.getParameter("sysparm_direct_ship_to");
+        var currency = this.getParameter("sysparm_currency");
+        var taxCodeTemp = this.getParameter("sysparm_tax_code_temp");
+        var cnDnAmount = this.getParameter("sysparm_cn_dn_amount");
+        var htmlJson = this.getParameter("sysparm_html_json").toString();
+        var shortDescription = this.getParameter("sysparm_short_description");
+        var note = this.getParameter("sysparm_note");
+        var u_save_as_draft = this.getParameter('sysparm_u_save_as_draft');
+        var u_ready_for_submition = this.getParameter('sysparm_u_ready_for_submition');
+        var empty_tax = this.getParameter('sysparm_empty_tax');
+        var header_json = this.getParameter('sysparm_header_json').toString();
+        var pc_record_sys_id = this.getParameter('sysparm_unique_value').toString();
+        var ready = u_ready_for_submition;
+
+        // New Parameters login mail
+        var user_record = new GlideRecord("sys_user");
+        user_record.get(gs.getUserID());
+        var login = user_record.u_login;
+        var email = gs.getUser().getEmail();
+        var invoices = htmlJson;
+        var partial = JSON.parse(header_json);
+
+        partial.Zwf = "";
+        partial.Zaction = "C";
+        partial.Zstatus = "D";
+
+        var list = JSON.parse(invoices);
+        var temp = [];
+        for (var z = 0; z < list.length; z++) {
+            var elem = {};
+
+            elem.ZdocumentNr = "";
+            elem.ZrefInvoice = list[z].invoices;
+            elem.Zposnr = list[z].item;
+            elem.ZrefInvoiceTaxCode = "";
+            elem.Zmatnr = list[z].products;
+            elem.Zqty = list[z].quantity;
+            elem.ZpriceInvoice = list[z].price;
+            elem.ZqtyInvoice = "0.0000";
+            elem.ZamountInvoice = list[z].amount.toString().replaceAll(",", "");
+            elem.Znprice = list[z].unitary_price.toString().replace(/\r/g, "").replaceAll(",", "");
+            elem.Znamount = list[z].new_amount.toString().replaceAll(",", "");
+            elem.ZamountAdj = list[z].adj_amt.toString().replaceAll(",", "");
+            elem.Zfinal = list[z].final.toString();
+
+            temp.push(elem);
+        }
+
+        partial.NAV_CDN_Document_Item = temp;
+
+        var log = [{
+            "Type": "",
+            "Document": "",
+            "Message": ""
+        }];
+
+        partial.NAV_CDN_Document_Log = log;
+
+        var att = [{
+            "ZdocumentNr": "",
+            "Name": "",
+            "Length": "",
+            "Content": ""
+        }];
+        partial.NAV_CDN_Document_Attachment = att;
+
+        try {
+            var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'fetch_CSRFtoken');
+            r.setStringParameter('login', login);
+            r.setStringParameter('email', email);
+
+            var response1 = r.execute();
+            var responseGetHeaders = response1.getHeaders();
+            var httpStatus = response1.getStatusCode();
+            var setCookieValue = responseGetHeaders["set-cookie"].toString();
+            var csrfTokenValue = responseGetHeaders["x-csrf-token"].toString();
+
+            try {
+
+                var t = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Check Data Integrity'); // Send data to SAP ---> C
+                t.setStringParameterNoEscape('login', login);
+                t.setStringParameterNoEscape('email', email);
+                t.setStringParameterNoEscape('Content-Type', 'application/json');
+                t.setStringParameter("cookie", setCookieValue);
+                t.setStringParameterNoEscape("x-csrf-token", csrfTokenValue);
+                t.setRequestBody(JSON.stringify(partial));
+                var response = t.execute();
+                var responseB = response.getBody();
+
+                var json = gs.xmlToJSON(responseB);
+                var str = JSON.stringify(json);
+                str = str.replace(/d:/g, "");
+                str = str.toLowerCase();
+                var messageRegex = /message='([^']+)'/;
+                var match2 = messageRegex.exec(str);
+                var responseCheck;
+                var httpStatusCheck;
+
+                if (match2) {
+                    var messageValue = match2[1];
+
+                    responseCheck = messageValue;
+                    responseCheck = responseCheck.replace(/%20/g, " ").replace(/%60/g, "'").replace(/%5/g, "").replace(/%3d/g, "").replace(/%5d/g, "").replace(/%2f/g, "").replace(/%28/g, "").replace(/%21/g, " ").replace(/%29/g, " ").replace(/%3a/g, " ").replace(/%3as/g, " ").replace(/%2c/g, " ");
+
+                } else {
+                    var jsonError = JSON.parse(str);
+                    var arr_error = [];
+                    arr_error.push(jsonError.error.innererror.errordetails.errordetail.message.toString());
+                    responseCheck = arr_error;
+
+                }
+                var httpStatus2 = response.getStatusCode();
+                var match = responseCheck;
+                var searchMSG = "successful";
+                if (match.indexOf(searchMSG) == -1) {
+
+                    obj.trowError = "check automatically executed detected and error. Reason [" + match + "]";
+                    obj.errorFound = "true";
+                    obj.errorCheck = "true";
+                    return JSON.stringify(obj);
+
+                }
+
+                partial.Zaction = "S";
+
+                var t = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Check Data Integrity'); // Send data to SAP ---> S
+                t.setStringParameterNoEscape('login', login);
+                t.setStringParameterNoEscape('email', email);
+                t.setStringParameterNoEscape('Content-Type', 'application/json');
+                t.setStringParameter("cookie", setCookieValue);
+                t.setStringParameterNoEscape("x-csrf-token", csrfTokenValue);
+                t.setRequestBody(JSON.stringify(partial));
+                var response = t.execute();
+                var responseB = response.getBody();
+                var httpStatus2 = response.getStatusCode();
+                if (httpStatus2 != 201) {
+                    //gs.eventQueue("sn_spend_psd.sn_spend_psd.cdn_submission", user_record, gs.getUserID());
+                    obj.trowError = "Could not save the request on SAP, try again if the error persists contact support";
+                    obj.errorFound = "true";
+                    obj.errorCheck = "true";
+                    return JSON.stringify(obj);
+                }
+                var json = gs.xmlToJSON(responseB);
+                var str = JSON.stringify(json);
+                str = str.replace(/d:/g, "");
+                str = str.toLowerCase();
+                var documentRegex = /"zdocumentnr":"([^"]+)"/g;
+
+                var newArray = [];
+                var match;
+
+                while ((match = documentRegex.exec(str)) !== null) {
+                    newArray.push(match[1]);
+                }
+                var final = newArray.pop();
+                var filtered = JSON.stringify(final);
+                filtered = filtered.toString().replace(/$|$/g, "").replace(/"/g, "").toUpperCase();
+                obj.sapId = filtered;
+                if (ready == "true") {
+                    // Get Apporver
+                    var document = obj.sapId.toString();
+                    document = "'" + document + "'";
+
+                    try {
+
+                        var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Get Approvers'); // Call Get Approvers
+                        r.setStringParameterNoEscape('login', login);
+                        r.setStringParameterNoEscape('email', email);
+                        r.setStringParameterNoEscape('sap_record', document);
+
+                        var response = r.execute();
+                        var responseBody = response.getBody();
+                        var status = response.getStatusCode();
+
+                        if (status != 200) {
+
+                            obj.trowError = "Get approver error";
+                            obj.errorFound = "true";
+                            var xmlDoc = new XMLDocument2();
+                            xmlDoc.parseXML(responseBody); // assuming responseBody contains your error XML
+
+                            // Grab the first <message> element, regardless of namespace
+                            var messageNode = xmlDoc.getFirstNode("//*[local-name()='message']");
+
+                            if (messageNode) {
+                                obj.trowError = messageNode.getTextContent();
+                            }
+                            return JSON.stringify(obj);
+                        }
+
+                        obj.state = "30"; // Work in progress
+                        var xmlDoc = new XMLDocument2();
+                        xmlDoc.parseXML(responseBody);
+
+                        var recurringNode = xmlDoc.getFirstNode("//d:Approvers");
+                        var arr = [];
+
+                        while (recurringNode != null) {
+                            var childIterator = recurringNode.getChildNodeIterator();
+                            var approver = {}; // Object to store approver data
+
+                            while (childIterator.hasNext()) {
+                                var childNode = childIterator.next();
+                                var childNodeName = childNode.getNodeName();
+
+                                // Extract values of the required fields
+                                if (childNodeName == "d:Id") {
+                                    approver.id = childNode.getTextContent();
+                                } else if (childNodeName == "d:ApprovalLevel") {
+                                    approver.level = childNode.getTextContent();
+                                } else if (childNodeName == "d:Role") {
+                                    approver.role = childNode.getTextContent();
+                                } else if (childNodeName == "d:Mail") {
+                                    approver.mail = childNode.getTextContent();
+                                } else if (childNodeName == "d:Flow") {
+                                    approver.flow = childNode.getTextContent();
+                                } else if (childNodeName == "d:Action") {
+                                    approver.action = childNode.getTextContent();
+                                }
+                            }
+
+                            // Add the approver object to the array if it contains all required fields
+                            if (approver.id && approver.level && approver.role && approver.mail && approver.flow && approver.action) {
+                                arr.push(approver);
+                            }
+
+                            recurringNode = xmlDoc.getNextNode(recurringNode);
+                        }
+
+                        obj.approvers = JSON.stringify(arr);
+
+                    } catch (ex) {
+                        var message = ex.message;
+                    }
+                    //End Get Approver
+                    //Set status if get approver is ok
+
+                    var status = '';
+                    var u_sap_id = obj.sapId;
+                    u_sap_id = "'" + u_sap_id + "'";
+                    var u_sap_id2 = obj.sapId;
+
+                    // try { --> Business rule : CDN - Set Satus SAP
+                    //     var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'fetch_CSRFtoken');
+                    //     r.setStringParameterNoEscape('login', login);
+                    //     r.setStringParameterNoEscape('email', email);
+
+                    //     var response1 = r.execute();
+                    //     var responseGetHeaders = response1.getHeaders();
+                    //     var httpStatus = response1.getStatusCode();
+
+                    //     var setCookieValue = responseGetHeaders["set-cookie"].toString();
+                    //     var csrfTokenValue = responseGetHeaders["x-csrf-token"].toString();
+
+                    //     var elem = {};
+                    //     elem.Role = "no_approvals";
+                    //     elem.Mail = email + "";
+                    //     elem.DocumentNr = u_sap_id2;
+                    //     elem.Status = "S";
+                    //     elem.RejectReas = "";
+
+                    //     try {
+                    //         var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'SetStatus');
+                    //         r.setStringParameterNoEscape('login', login);
+                    //         r.setStringParameterNoEscape('email', email);
+                    //         r.setStringParameterNoEscape('DocumentNr', u_sap_id);
+                    //         r.setStringParameterNoEscape('Content-Type', 'application/json');
+                    //         r.setStringParameter("cookie", setCookieValue);
+                    //         r.setStringParameterNoEscape("x-csrf-token", csrfTokenValue);
+                    //         r.setRequestBody(JSON.stringify(elem));
+
+                    //         var response = r.execute();
+                    //         var responseBody = response.getBody();
+                    //         var httpStatus = response.getStatusCode();
+                    //     } catch (ex) {
+                    //         var message = ex.message;
+                    //     }
+                    // } catch (ex) {
+                    //     var message = ex.message;
+                    // }
+                    //End set status
+                }
+            } catch (ex) {
+                var message = ex.message;
+            }
+        } catch (ex) {
+            var message2 = ex.message;
+        }
+        return JSON.stringify(obj);
+    },
+
+    updateSapDataOnEditing: function() {
+
+        var result = {};
+        var pr_sys_id = this.getParameter("sysparm_id");
+        var invoices = this.getParameter("sysparm_html_json");
+        var case_type = this.getParameter("sysparm_case_type");
+        var header_json = this.getParameter("sysparm_header_json");
+        var userId = gs.getUserID();
+        var grSessionUser = new GlideRecord("sys_user");
+        grSessionUser.get(userId);
+        var login = grSessionUser.u_login;
+        var email = grSessionUser.email;
+
+        var currentPrCase = new GlideRecord("sn_spend_psd_procurement_request");
+        currentPrCase.addEncodedQuery("sys_id=" + pr_sys_id);
+        currentPrCase.query();
+        if (currentPrCase.next()) {
+
+            var partial = JSON.parse(header_json);
+            var cdn_num = currentPrCase.number.toString();
+            var doc_num = currentPrCase.u_sap_id.toString();
+
+            //Header fields
+            partial.Zwf = cdn_num;
+            partial.Zwaers = this.getParameter("sysparm_currency").slice(0, 3).toUpperCase();
+            partial.Zaction = "C";
+            partial.Zstatus = "D";
+            partial.ZdocumentNr = doc_num ? doc_num : "";
+            partial.Znote = this.getParameter("sysparm_note");
+            partial.ZtaxCode = this.getParameter("sysparm_tax_code_temp").slice(0, 2).toUpperCase();
+            partial.Zreason = this.getParameter("sysparm_reason_code").slice(0, 4).toUpperCase();
+            partial.ZfinalShipTo = this.getParameter("sysparm_final_ship_to").substring(0, 10);
+            partial.ZdirectShipTo = this.getParameter("sysparm_direct_ship_to").substring(0, 10);
+            partial.ZheaderText = this.getParameter("sysparm_header_text");
+            if (case_type == "112") {
+                partial.ZdocumentTypeN = "Credit";
+                partial.ZdocumentType = "CR";
+            } else if (case_type == "111") {
+                partial.ZdocumentTypeN = "Debit";
+                partial.ZdocumentType = "DN";
+            }
+
+            var list = JSON.parse(invoices);
+            var temp = [];
+            for (var z = 0; z < list.length; z++) {
+
+                var elem = {};
+
+                //Html json fields
+                elem.ZdocumentNr = doc_num ? doc_num : "";
+                elem.ZrefInvoice = list[z].invoices;
+                elem.Zposnr = list[z].item;
+                elem.ZrefInvoiceTaxCode = "";
+                elem.Zmatnr = list[z].products;
+                elem.Zqty = list[z].quantity;
+                elem.ZpriceInvoice = list[z].price;
+                elem.ZqtyInvoice = "0.0000";
+                elem.ZamountInvoice = list[z].amount.toString().replaceAll(",", "");
+                elem.Znprice = list[z].unitary_price.toString().replace(/\r/g, "").replaceAll(",", "");
+                elem.Znamount = list[z].new_amount.toString().replaceAll(",", "");
+                elem.ZamountAdj = list[z].adj_amt.toString().replaceAll(",", "");
+                elem.Zfinal = list[z].final.toString();
+
+                temp.push(elem);
+                var temp_list = temp;
+
+            }
+
+            partial.NAV_CDN_Document_Item = temp_list;
+
+            var log = [{
+                "Type": "",
+                "Document": "",
+                "Message": ""
+            }];
+
+            partial.NAV_CDN_Document_Log = log;
+
+            var gratt = new GlideRecord('sys_attachment');
+            gratt.addQuery('table_name', "sn_spend_psd_procurement_request");
+            gratt.addQuery('table_sys_id', currentPrCase.sys_id);
+            gratt.query();
+
+            var totalSize = 0;
+            while (gratt.next()) {
+
+                var attachment = new GlideSysAttachment();
+
+                var agr = attachment.getAttachments('sn_spend_psd_procurement_request', currentPrCase.sys_id);
+                var temp_doc = [];
+                while (agr.next()) {
+
+                    var attach_name = agr.getValue('file_name');
+                    var attach_length = agr.size_bytes;
+                    var attachmentContent = attachment.getContentBase64(agr);
+                    var attach_type = agr.getDisplayValue('content_type');
+                    var doc = {};
+                    doc.ZdocumentNr = doc_num ? doc_num : "";
+                    doc.Name = attach_name;
+                    doc.Length = attach_length.replace(/"/g, "");
+                    doc.Content = attachmentContent;
+                    temp_doc.push(doc);
+
+                    partial.NAV_CDN_Document_Attachment = temp_doc;
+
+                }
+            }
+            if (!gratt) {
+
+                var att = [{
+                    "ZdocumentNr": doc_num ? doc_num : "",
+                    "Name": "",
+                    "Length": "",
+                    "Content": ""
+                }];
+                partial.NAV_CDN_Document_Attachment = att;
+            }
+
+            try {
+                var r = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'fetch_CSRFtoken');
+                r.setStringParameter('login', login);
+                r.setStringParameter('email', email);
+
+                var response1 = r.execute();
+                var responseGetHeaders = response1.getHeaders();
+                var httpStatus = response1.getStatusCode();
+                // New Parameters cookie by properties
+                var setCookieValue = responseGetHeaders["set-cookie"].toString();
+                var csrfTokenValue = responseGetHeaders["x-csrf-token"].toString();
+
+
+                try {
+
+                    var t = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Check Data Integrity');
+                    t.setStringParameterNoEscape('login', login);
+                    t.setStringParameterNoEscape('email', email);
+                    t.setStringParameterNoEscape('Content-Type', 'application/json');
+                    t.setStringParameter("cookie", setCookieValue);
+                    t.setStringParameterNoEscape("x-csrf-token", csrfTokenValue);
+                    t.setRequestBody(JSON.stringify(partial));
+                    var response = t.execute();
+                    var responseB = response.getBody();
+
+                    var json = gs.xmlToJSON(responseB);
+                    var str = JSON.stringify(json);
+                    str = str.replace(/d:/g, "");
+                    str = str.toLowerCase();
+                    var messageRegex = /message='([^']+)'/;
+                    var match2 = messageRegex.exec(str);
+                    var responseCheck;
+                    var httpStatusCheck;
+
+                    if (match2) {
+                        var messageValue = match2[1];
+
+                        responseCheck = messageValue;
+                        responseCheck = responseCheck.replace(/%20/g, " ").replace(/%60/g, "'").replace(/%5/g, "").replace(/%3d/g, "").replace(/%5d/g, "").replace(/%2f/g, "").replace(/%28/g, "").replace(/%21/g, " ").replace(/%29/g, " ").replace(/%3a/g, " ").replace(/%3as/g, " ").replace(/%2c/g, " ");
+
+                    } else {
+                        var jsonError = JSON.parse(str);
+                        var arr_error = [];
+                        arr_error.push(jsonError.error.innererror.errordetails.errordetail.message.toString());
+                        responseCheck = arr_error;
+
+                    }
+                    var httpStatus2 = response.getStatusCode();
+
+                    var match = responseCheck;
+                    var searchMSG = "successful";
+                    if (match.indexOf(searchMSG) == -1) {
+
+                        result.status = "error";
+                        result.message = "check automatically executed detected and error. Reason [" + match + "]";
+                        return JSON.stringify(result);
+
+                    }
+
+                    partial.Zaction = "S";
+
+                    var t = new sn_ws.RESTMessageV2('ST - S4 Hana - Credit Debit Notes', 'Check Data Integrity');
+                    t.setStringParameterNoEscape('login', login);
+                    t.setStringParameterNoEscape('email', email);
+                    t.setStringParameterNoEscape('Content-Type', 'application/json');
+                    t.setStringParameter("cookie", setCookieValue);
+                    t.setStringParameterNoEscape("x-csrf-token", csrfTokenValue);
+                    t.setRequestBody(JSON.stringify(partial));
+
+                    var response = t.execute();
+                    var responseB = response.getBody();
+                    var httpStatus2 = response.getStatusCode();
+
+                    if (httpStatus2 != 201) {
+
+                        result.status = "error";
+                        result.message = "Could not Edit SAP data, retry again. If error persists contact support";
+                        return JSON.stringify(result);
+
+                    }
+
+                    var json = gs.xmlToJSON(responseB);
+                    var str = JSON.stringify(json);
+                    str = str.replace(/d:/g, "");
+                    str = str.toLowerCase();
+
+                    var documentRegex = /"zdocumentnr":"([^"]+)"/g;
+
+                    var newArray = [];
+                    var match;
+
+                    while ((match = documentRegex.exec(str)) !== null) {
+                        newArray.push(match[1]);
+                    }
+                    result.status = "success";
+                    result.message = "";
+                    return JSON.stringify(result);
+                } catch (ex) {
+                    var message = ex.message;
+                    result.status = "error";
+                    result.message = message;
+                    return JSON.stringify(result);
+                }
+            } catch (ex) {
+                var message2 = ex.message;
+                result.status = "error";
+                result.message = message2;
+                return JSON.stringify(result);
+            }
+        }
+    },
+
+    type: 'CDNAccrualsUtils'
+});
+
